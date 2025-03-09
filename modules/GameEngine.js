@@ -1,5 +1,5 @@
 export default class GameEngine {
-    constructor({ player, renderer, commandParser, inputHandler, rooms, textOutput, roomNameDisplay }) {
+    constructor({ player, renderer, commandParser, inputHandler, rooms, textOutput, roomNameDisplay, spriteManager }) {
         this.player = player;
         this.renderer = renderer;
         this.commandParser = commandParser;
@@ -7,6 +7,7 @@ export default class GameEngine {
         this.rooms = rooms;
         this.textOutput = textOutput;
         this.roomNameDisplay = roomNameDisplay;
+        this.spriteManager = spriteManager;
         
         this.currentRoom = 'forest';
         this.gameFlags = {};
@@ -16,6 +17,11 @@ export default class GameEngine {
         this.commandParser.setGameEngine(this);
         this.inputHandler.setGameEngine(this);
         this.player.setGameEngine(this);
+        
+        // Set sprite manager for renderer if provided
+        if (this.spriteManager) {
+            this.renderer.setSpriteManager(this.spriteManager);
+        }
     }
     
     start() {

@@ -6,6 +6,7 @@ export default class Player {
         this.height = 30;
         this.color = '#ffff00';
         this.speed = 2;
+        this.sprite = 'player'; // Added sprite reference
         
         this.gameEngine = null;
         
