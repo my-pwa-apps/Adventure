@@ -62,8 +62,11 @@ export const rooms = {
                 y: 100, 
                 width: 40, 
                 height: 80, 
-                description: 'A wooden door to the cottage.',
-                type: 'door'
+                description: 'A wooden door to the cottage. You can enter by using or opening it.',
+                type: 'door',
+                isExit: true, 
+                leadsTo: 'cottage_interior',
+                isDoor: true
             },
             { 
                 name: 'pendant', 
@@ -89,6 +92,45 @@ export const rooms = {
         ],
         npcs: [],
         description: 'A small cottage with a wooden door. The path leads back to the forest.'
+    },
+    'cottage_interior': {
+        name: 'Inside Cottage',
+        background: '#553311',
+        type: 'cottage_interior',
+        objects: [
+            { 
+                name: 'door', 
+                x: 160, 
+                y: 180, 
+                width: 40, 
+                height: 20, 
+                description: 'The cottage door leads back outside.', 
+                isExit: true, 
+                leadsTo: 'cottage',
+                type: 'door',
+                isDoor: true
+            },
+            { 
+                name: 'table', 
+                x: 120, 
+                y: 120, 
+                width: 80, 
+                height: 40, 
+                description: 'A wooden table with a few items on it.',
+                type: 'table'
+            },
+            { 
+                name: 'chair', 
+                x: 90, 
+                y: 130, 
+                width: 20, 
+                height: 20, 
+                description: 'A simple wooden chair.',
+                type: 'chair'
+            }
+        ],
+        npcs: [],
+        description: 'You are inside the small cottage. It\'s a cozy space with simple furniture.'
     }
 };
 

@@ -30,12 +30,18 @@ export default class CommandParser {
             case 'use':
                 this.handleUseCommand(words);
                 break;
+            case 'open':
+                this.handleOpenCommand(words);
+                break;
+            case 'enter':
+                this.handleEnterCommand(words);
+                break;
             case 'inventory':
             case 'i':
                 this.gameEngine.showInventory();
                 break;
             case 'help':
-                this.gameEngine.displayMessage("Commands: look, take [item], use [item], talk to [person], inventory");
+                this.gameEngine.displayMessage("Commands: look, take [item], use [item], open [door], enter [door/building], talk to [person], inventory");
                 break;
             case 'talk':
                 if (words[1] === 'to') {
@@ -73,9 +79,67 @@ export default class CommandParser {
     handleUseCommand(words) {
         if (words.length > 1) {
             const itemName = words.slice(1).join(' ');
-            this.useObject(itemName);
+            
+            // Special handling for "use door"
+            if (itemName.toLowerCase() === 'door') {
+                this.tryToUseDoor();
+                return;
+            }
+            
+            // Normal inventory item usage
+            if (!this.gameEngine.hasInInventory(itemName)) {
+                this.gameEngine.displayMessage(`You don't have a ${itemName}.`);
+                return;
+            }
+            
+            // Item-specific logic
+            if (itemName === 'pendant' && this.gameEngine.currentRoom === 'forest') {
+                const room = this.gameEngine.getCurrentRoom();
+                const oldMan = room.npcs?.find(npc => npc.name === 'old man');
+                
+                if (oldMan && this.gameEngine.player.isNear(oldMan)) {
+                    this.gameEngine.displayMessage("The old man takes the pendant. 'Thank you! As promised, here's your reward.' He gives you a magic key.");
+                    this.gameEngine.removeFromInventory('pendant');
+                    this.gameEngine.addToInventory({
+                        name: 'magic key',
+                        description: 'A glowing magic key.',
+                        canTake: true
+                    });
+                    return;
+                }
+            }
+            
+            this.gameEngine.displayMessage(`You used the ${itemName}, but nothing happens.`);
         } else {
             this.gameEngine.displayMessage("Use what?");
+        }
+    }
+    
+    handleOpenCommand(words) {
+        if (words.length > 1) {
+            const targetName = words.slice(1).join(' ');
+            // Check if trying to open a door
+            if (targetName.toLowerCase() === 'door') {
+                this.tryToUseDoor();
+            } else {
+                this.gameEngine.displayMessage(`You can't open the ${targetName}.`);
+            }
+        } else {
+            this.gameEngine.displayMessage("Open what?");
+        }
+    }
+    
+    handleEnterCommand(words) {
+        if (words.length > 1) {
+            const targetName = words.slice(1).join(' ');
+            // Check if trying to enter a cottage or door
+            if (targetName.toLowerCase() === 'door' || targetName.toLowerCase() === 'cottage') {
+                this.tryToUseDoor();
+            } else {
+                this.gameEngine.displayMessage(`You can't enter the ${targetName}.`);
+            }
+        } else {
+            this.gameEngine.displayMessage("Enter what?");
         }
     }
     
@@ -141,30 +205,25 @@ export default class CommandParser {
         this.gameEngine.displayMessage("You don't see that here.");
     }
     
-    useObject(itemName) {
-        if (!this.gameEngine.hasInInventory(itemName)) {
-            this.gameEngine.displayMessage(`You don't have a ${itemName}.`);
-            return;
-        }
+    tryToUseDoor() {
+        const currentRoom = this.gameEngine.getCurrentRoom();
         
-        // Item-specific logic
-        if (itemName === 'pendant' && this.gameEngine.currentRoom === 'forest') {
-            const room = this.gameEngine.getCurrentRoom();
-            const oldMan = room.npcs?.find(npc => npc.name === 'old man');
-            
-            if (oldMan && this.gameEngine.player.isNear(oldMan)) {
-                this.gameEngine.displayMessage("The old man takes the pendant. 'Thank you! As promised, here's your reward.' He gives you a magic key.");
-                this.gameEngine.removeFromInventory('pendant');
-                this.gameEngine.addToInventory({
-                    name: 'magic key',
-                    description: 'A glowing magic key.',
-                    canTake: true
-                });
-                return;
+        // Find a door in the current room
+        const door = currentRoom.objects.find(obj => 
+            obj.isDoor || (obj.name.toLowerCase() === 'door' && obj.isExit)
+        );
+        
+        if (door) {
+            // Check if player is near the door
+            if (this.gameEngine.player.isNear(door, 70)) { // Increased distance threshold for doors
+                this.gameEngine.displayMessage(`You go through the door.`);
+                this.gameEngine.changeRoom(door.leadsTo);
+            } else {
+                this.gameEngine.displayMessage("You need to get closer to the door first.");
             }
+        } else {
+            this.gameEngine.displayMessage("There's no door here that you can use.");
         }
-        
-        this.gameEngine.displayMessage(`You used the ${itemName}, but nothing happens.`);
     }
     
     talkToNpc(npcName) {
