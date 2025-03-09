@@ -4,20 +4,43 @@ export default class Renderer {
         this.ctx = canvasElement.getContext('2d');
         this.rooms = rooms;
         
-        // Pixel size for "retro" drawing
-        this.pixelSize = 2;
+        // Sierra games used low-res screens 
+        // Set virtual resolution that gets scaled to canvas size
+        this.virtualWidth = 320;
+        this.virtualHeight = 200;
         
-        // Color palettes for procedural generation
-        this.palettes = {
-            forest: ['#005500', '#007700', '#009900', '#00bb00'],
-            cottage: ['#553311', '#775533', '#997755', '#bb9977'],
-            grass: ['#005500', '#007700', '#009900', '#00bb00'],
-            dirt: ['#663300', '#885522', '#aa7744', '#cc9966'],
-            wood: ['#663300', '#885522', '#aa7744', '#cc9966'],
-            stone: ['#777777', '#999999', '#aaaaaa', '#cccccc'],
-            foliage: ['#005500', '#007700', '#009900', '#00bb00'],
-            water: ['#0000aa', '#0000cc', '#0000ee', '#0000ff'],
-            sky: ['#3399ff', '#55aaff', '#77ccff', '#99eeff']
+        // Create an offscreen canvas for pixel-perfect rendering
+        this.virtualCanvas = document.createElement('canvas');
+        this.virtualCanvas.width = this.virtualWidth;
+        this.virtualCanvas.height = this.virtualHeight;
+        this.virtualCtx = this.virtualCanvas.getContext('2d');
+        this.virtualCtx.imageSmoothingEnabled = false;
+        
+        // EGA 16-color palette (authentic Sierra colors)
+        this.EGAPalette = {
+            black: '#000000',
+            blue: '#0000AA',
+            green: '#00AA00',
+            cyan: '#00AAAA',
+            red: '#AA0000',
+            magenta: '#AA00AA',
+            brown: '#AA5500',
+            lightGray: '#AAAAAA',
+            darkGray: '#555555',
+            lightBlue: '#5555FF',
+            lightGreen: '#55FF55',
+            lightCyan: '#55FFFF',
+            lightRed: '#FF5555',
+            lightMagenta: '#FF55FF',
+            yellow: '#FFFF55',
+            white: '#FFFFFF'
+        };
+        
+        // Standard Sierra screen layout
+        this.sierraLayout = {
+            sky: 0.4,      // 40% of screen for sky
+            horizon: 0.4,  // horizon line position
+            ground: 0.6    // 60% of screen for ground
         };
         
         // Cache for background rendering
@@ -29,12 +52,12 @@ export default class Renderer {
     }
     
     render(currentRoomId, player) {
-        // Clear canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Clear virtual canvas
+        this.virtualCtx.clearRect(0, 0, this.virtualWidth, this.virtualHeight);
         
         const room = this.rooms[currentRoomId];
         
-        // Draw background (from cache if available)
+        // Draw background
         this.drawBackground(room, currentRoomId);
         
         // Draw objects
@@ -45,402 +68,566 @@ export default class Renderer {
         
         // Draw player
         this.drawPlayer(player);
+        
+        // Scale the virtual canvas to the actual canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(
+            this.virtualCanvas, 
+            0, 0, this.virtualWidth, this.virtualHeight,
+            0, 0, this.canvas.width, this.canvas.height
+        );
     }
     
     drawBackground(room, roomId) {
         // Check if we have a cached background
         if (this.backgroundCache[roomId]) {
-            this.ctx.drawImage(this.backgroundCache[roomId], 0, 0);
+            this.virtualCtx.drawImage(this.backgroundCache[roomId], 0, 0);
             return;
         }
         
         // Create an off-screen canvas for background caching
         const bgCanvas = document.createElement('canvas');
-        bgCanvas.width = this.canvas.width;
-        bgCanvas.height = this.canvas.height;
+        bgCanvas.width = this.virtualWidth;
+        bgCanvas.height = this.virtualHeight;
         const bgCtx = bgCanvas.getContext('2d');
-        
-        // Draw base background color
-        bgCtx.fillStyle = room.background;
-        bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
         
         // Generate background based on room type
         if (room.type === 'forest') {
-            this.drawForestBackground(bgCtx, bgCanvas);
+            this.drawSierraForestBackground(bgCtx);
         } else if (room.type === 'cottage') {
-            this.drawCottageBackground(bgCtx, bgCanvas);
+            this.drawSierraCottageBackground(bgCtx);
         }
-        
-        // Add some randomized details to make the background more interesting
-        this.drawRandomizedDetails(room.type, bgCtx, bgCanvas);
         
         // Store the rendered background in cache
         this.backgroundCache[roomId] = bgCanvas;
         
-        // Draw the background to the main canvas
-        this.ctx.drawImage(bgCanvas, 0, 0);
+        // Draw the background to the virtual canvas
+        this.virtualCtx.drawImage(bgCanvas, 0, 0);
     }
     
-    drawForestBackground(ctx, canvas) {
-        // Draw sky
-        ctx.fillStyle = '#87ceeb';  // Sky blue
-        ctx.fillRect(0, 0, canvas.width, canvas.height / 3);
+    drawSierraForestBackground(ctx) {
+        const width = this.virtualWidth;
+        const height = this.virtualHeight;
+        const horizon = height * this.sierraLayout.horizon;
         
-        // Draw distant trees (simplified shapes)
-        for (let x = 0; x < canvas.width; x += 20) {
-            const height = 30 + Math.random() * 20;
-            ctx.fillStyle = this.getRandomColor(this.palettes.foliage);
-            ctx.fillRect(x, canvas.height / 3 - height, 15, height);
+        // Clear background
+        ctx.fillStyle = this.EGAPalette.black;
+        ctx.fillRect(0, 0, width, height);
+        
+        // Sky gradient (simulated with bands of color)
+        const skyColors = [
+            this.EGAPalette.blue,
+            this.EGAPalette.lightBlue
+        ];
+        
+        const bandHeight = horizon / skyColors.length;
+        for (let i = 0; i < skyColors.length; i++) {
+            ctx.fillStyle = skyColors[i];
+            ctx.fillRect(0, i * bandHeight, width, bandHeight);
         }
+        
+        // Draw distant mountains - typical Sierra backdrop
+        ctx.fillStyle = this.EGAPalette.darkGray;
+        
+        // First mountain range (distant)
+        this.drawMountainRange(ctx, height * 0.25, height * 0.4, 3);
+        
+        // Second mountain range (closer)
+        ctx.fillStyle = this.EGAPalette.darkGray;
+        this.drawMountainRange(ctx, height * 0.3, height * 0.4, 2);
         
         // Draw ground
-        ctx.fillStyle = '#228B22';  // Forest green
-        ctx.fillRect(0, canvas.height / 3, canvas.width, canvas.height * 2/3);
+        ctx.fillStyle = this.EGAPalette.green;
+        ctx.fillRect(0, horizon, width, height - horizon);
         
-        // Add some noise/texture to the ground
-        this.addNoiseTexture(0, canvas.height / 3, canvas.width, canvas.height * 2/3, 
-                           this.palettes.grass, 0.1, ctx);
+        // Draw pixelated trees in background
+        this.drawDistantForestTrees(ctx, horizon);
+        
+        // Draw walking path
+        this.drawForestPath(ctx, horizon);
+        
+        // Add Sierra-style dithering for ground texture
+        this.addSierraDithering(ctx, 0, horizon, width, height - horizon, 
+                             this.EGAPalette.green, this.EGAPalette.lightGreen);
     }
     
-    drawCottageBackground(ctx, canvas) {
-        // Draw sky
-        ctx.fillStyle = '#87ceeb';  // Sky blue
-        ctx.fillRect(0, 0, canvas.width, canvas.height / 3);
+    drawMountainRange(ctx, baseY, maxHeight, roughness) {
+        const width = this.virtualWidth;
+        const segments = 10;
+        const segmentWidth = width / segments;
         
-        // Draw hills
-        ctx.fillStyle = '#228B22';  // Forest green
         ctx.beginPath();
-        ctx.moveTo(0, canvas.height / 3);
+        ctx.moveTo(0, baseY);
         
-        // Create wavy hills with a deterministic pattern for caching
-        const seed = 12345; // Fixed seed for reproducibility
-        for (let x = 0; x < canvas.width; x += 50) {
-            // Use a deterministic function instead of Math.random()
-            const height = ((x * seed) % 20);
-            ctx.lineTo(x, canvas.height / 3 + height);
+        // Generate mountain peaks
+        for (let i = 0; i <= segments; i++) {
+            const x = i * segmentWidth;
+            const heightVariation = Math.sin(i / roughness) * maxHeight;
+            const y = baseY - heightVariation;
+            ctx.lineTo(x, y);
         }
-        ctx.lineTo(canvas.width, canvas.height / 3);
+        
+        // Complete the shape
+        ctx.lineTo(width, baseY);
+        ctx.lineTo(width, baseY + maxHeight * 2);
+        ctx.lineTo(0, baseY + maxHeight * 2);
         ctx.closePath();
         ctx.fill();
-        
-        // Draw ground
-        ctx.fillStyle = '#8B4513';  // Saddle brown for dirt
-        ctx.fillRect(0, canvas.height / 3, canvas.width, canvas.height * 2/3);
-        
-        // Draw a simple cottage in the background
-        ctx.fillStyle = '#A0522D';  // Brown for cottage
-        ctx.fillRect(80, 60, 160, 80);
-        
-        // Roof
-        ctx.fillStyle = '#8B4513';  // Darker brown for roof
-        ctx.beginPath();
-        ctx.moveTo(70, 60);
-        ctx.lineTo(160, 30);
-        ctx.lineTo(250, 60);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Add some noise/texture to the ground
-        this.addNoiseTexture(0, canvas.height / 3, canvas.width, canvas.height * 2/3, 
-                           this.palettes.dirt, 0.1, ctx);
     }
     
-    drawRandomizedDetails(roomType, ctx, canvas) {
-        // Use deterministic pattern for caching consistency
-        const seed = roomType === 'forest' ? 54321 : 98765;
-        const numDetails = 20;
-        const palette = roomType === 'forest' ? this.palettes.grass : this.palettes.dirt;
+    drawDistantForestTrees(ctx, horizon) {
+        const width = this.virtualWidth;
+        const treeLine = horizon - 10;
         
-        for (let i = 0; i < numDetails; i++) {
-            const x = (i * seed) % canvas.width;
-            const y = (canvas.height / 3) + ((i * seed * 31) % (canvas.height * 2/3));
-            const size = 2 + (i % 5);
+        // Draw multiple layers of trees for depth
+        for (let row = 0; row < 3; row++) {
+            const y = treeLine - row * 5;
+            const treeWidth = 8 - row * 2;
+            const treeHeight = 12 - row * 2;
+            const treeColor = row === 0 ? this.EGAPalette.green : 
+                             (row === 1 ? this.EGAPalette.lightGreen : this.EGAPalette.green);
             
-            ctx.fillStyle = palette[i % palette.length];
-            ctx.fillRect(x, y, size, size);
-        }
-    }
-    
-    addNoiseTexture(x, y, width, height, colorPalette, density, ctx = this.ctx) {
-        // Use a deterministic pattern for texture when cached
-        const pixelsToAdd = Math.floor(width * height * density);
-        const seed = 42; // Fixed seed
-        
-        for (let i = 0; i < pixelsToAdd; i++) {
-            const px = x + ((i * seed) % width);
-            const py = y + ((i * seed * 27) % height);
-            const color = colorPalette[i % colorPalette.length];
+            ctx.fillStyle = treeColor;
             
-            ctx.fillStyle = color;
-            ctx.fillRect(px, py, this.pixelSize, this.pixelSize);
-        }
-    }
-    
-    getRandomColor(palette) {
-        return palette[Math.floor(Math.random() * palette.length)];
-    }
-    
-    drawObjects(objects) {
-        for (const obj of objects) {
-            // Different drawing methods based on object type
-            switch(obj.type) {
-                case 'tree':
-                    this.drawTree(obj.x, obj.y, obj.width, obj.height);
-                    break;
-                case 'rock': 
-                    this.drawRock(obj.x, obj.y, obj.width, obj.height);
-                    break;
-                case 'path':
-                    this.drawPath(obj.x, obj.y, obj.width, obj.height);
-                    break;
-                case 'door':
-                    this.drawDoor(obj.x, obj.y, obj.width, obj.height);
-                    break;
-                case 'pendant':
-                    this.drawPendant(obj.x, obj.y, obj.width, obj.height);
-                    break;
-                default:
-                    // Generic colored rectangle as fallback
-                    this.ctx.fillStyle = obj.isExit ? '#888888' : 
-                                        obj.canTake ? '#ffff00' : '#8B4513';
-                    this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+            for (let x = -treeWidth/2; x < width; x += treeWidth - 2) {
+                // Draw triangular tree
+                ctx.beginPath();
+                ctx.moveTo(x + treeWidth/2, y - treeHeight);
+                ctx.lineTo(x + treeWidth, y);
+                ctx.lineTo(x, y);
+                ctx.closePath();
+                ctx.fill();
             }
         }
     }
     
-    drawTree(x, y, width, height) {
-        // Draw tree trunk
-        this.ctx.fillStyle = '#8B4513'; // Brown
-        const trunkWidth = width / 2;
-        const trunkHeight = height / 2;
-        const trunkX = x + (width - trunkWidth) / 2;
-        this.ctx.fillRect(trunkX, y + height - trunkHeight, trunkWidth, trunkHeight);
+    drawForestPath(ctx, horizon) {
+        const width = this.virtualWidth;
+        const height = this.virtualHeight;
         
-        // Draw foliage (triangle for pine tree)
-        this.ctx.fillStyle = '#228B22'; // Forest green
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y + height - trunkHeight);
-        this.ctx.lineTo(x + width / 2, y);
-        this.ctx.lineTo(x + width, y + height - trunkHeight);
-        this.ctx.closePath();
-        this.ctx.fill();
+        // Draw a typical Sierra-style path
+        ctx.fillStyle = this.EGAPalette.brown;
         
-        // Add some details to the foliage
-        this.addNoiseTexture(x, y, width, height - trunkHeight, this.palettes.foliage, 0.05);
-    }
-    
-    drawRock(x, y, width, height) {
-        // Draw a rock with some shading
-        const rockGradient = this.ctx.createRadialGradient(
-            x + width / 2, y + height / 2, 1,
-            x + width / 2, y + height / 2, width
+        // Path starts narrow at horizon and widens toward bottom
+        const pathTopWidth = 20;
+        const pathBottomWidth = 60;
+        
+        ctx.beginPath();
+        ctx.moveTo(width/2 - pathTopWidth/2, horizon);
+        ctx.lineTo(width/2 + pathTopWidth/2, horizon);
+        ctx.lineTo(width/2 + pathBottomWidth/2, height);
+        ctx.lineTo(width/2 - pathBottomWidth/2, height);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add some dithering to the path for texture
+        this.addSierraDithering(
+            ctx, 
+            width/2 - pathBottomWidth/2, horizon, 
+            pathBottomWidth, height - horizon,
+            this.EGAPalette.brown, this.EGAPalette.lightGray
         );
-        rockGradient.addColorStop(0, '#aaaaaa');
-        rockGradient.addColorStop(1, '#666666');
+    }
+    
+    drawSierraCottageBackground(ctx) {
+        const width = this.virtualWidth;
+        const height = this.virtualHeight;
+        const horizon = height * this.sierraLayout.horizon;
         
-        // Draw rock as an ellipse
-        this.ctx.fillStyle = rockGradient;
-        this.ctx.beginPath();
-        this.ctx.ellipse(
-            x + width / 2, y + height / 2,
-            width / 2, height / 2,
-            0, 0, Math.PI * 2
+        // Clear background
+        ctx.fillStyle = this.EGAPalette.black;
+        ctx.fillRect(0, 0, width, height);
+        
+        // Sky
+        ctx.fillStyle = this.EGAPalette.lightBlue;
+        ctx.fillRect(0, 0, width, horizon);
+        
+        // Ground
+        ctx.fillStyle = this.EGAPalette.green;
+        ctx.fillRect(0, horizon, width, height - horizon);
+        
+        // Draw a cottage in Sierra style
+        this.drawSierraCottage(ctx, width/2 - 60, horizon - 60, 120, 80);
+        
+        // Draw a path to the cottage
+        ctx.fillStyle = this.EGAPalette.brown;
+        
+        // Path from bottom to cottage door
+        const pathBottomWidth = 40;
+        const pathTopWidth = 20;
+        const cottageY = horizon + 20; // Just below horizon
+        
+        ctx.beginPath();
+        ctx.moveTo(width/2 - pathTopWidth/2, cottageY);
+        ctx.lineTo(width/2 + pathTopWidth/2, cottageY);
+        ctx.lineTo(width/2 + pathBottomWidth/2, height);
+        ctx.lineTo(width/2 - pathBottomWidth/2, height);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add Sierra-style dithering for ground texture
+        this.addSierraDithering(
+            ctx, 0, horizon, width, height - horizon, 
+            this.EGAPalette.green, this.EGAPalette.lightGreen
         );
-        this.ctx.fill();
-        
-        // Add some details to make it look more like a rock
-        this.addNoiseTexture(x, y, width, height, this.palettes.stone, 0.1);
     }
     
-    drawPath(x, y, width, height) {
-        // Draw a dirt path
-        this.ctx.fillStyle = '#8B4513'; // Saddle brown
-        this.ctx.fillRect(x, y, width, height);
+    drawSierraCottage(ctx, x, y, width, height) {
+        // House wall
+        ctx.fillStyle = this.EGAPalette.brown;
+        ctx.fillRect(x, y, width, height);
         
-        // Add some texture/noise to the path
-        this.addNoiseTexture(x, y, width, height, this.palettes.dirt, 0.2);
-    }
-    
-    drawDoor(x, y, width, height) {
-        // Door frame
-        this.ctx.fillStyle = '#8B4513'; // Brown
-        this.ctx.fillRect(x, y, width, height);
+        // Roof (pointy)
+        ctx.fillStyle = this.EGAPalette.red;
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y);
+        ctx.lineTo(x + width/2, y - 30);
+        ctx.lineTo(x + width + 10, y);
+        ctx.closePath();
+        ctx.fill();
         
-        // Door itself
-        this.ctx.fillStyle = '#A0522D'; // Sienna (slightly lighter brown)
-        this.ctx.fillRect(x + 2, y + 2, width - 4, height - 4);
+        // Door
+        ctx.fillStyle = this.EGAPalette.darkGray;
+        const doorWidth = 20;
+        const doorHeight = 40;
+        const doorX = x + (width - doorWidth) / 2;
+        const doorY = y + height - doorHeight;
+        ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
         
         // Door handle
-        this.ctx.fillStyle = '#FFD700'; // Gold
-        this.ctx.fillRect(x + width * 0.8, y + height / 2, width * 0.1, width * 0.1);
+        ctx.fillStyle = this.EGAPalette.yellow;
+        ctx.fillRect(doorX + doorWidth - 5, doorY + doorHeight/2, 3, 3);
+        
+        // Windows
+        ctx.fillStyle = this.EGAPalette.lightCyan;
+        
+        // Left window
+        this.drawSierraWindow(ctx, x + width * 0.25 - 10, y + height * 0.3, 20, 15);
+        
+        // Right window
+        this.drawSierraWindow(ctx, x + width * 0.75 - 10, y + height * 0.3, 20, 15);
+        
+        // Add some Sierra-style detail lines for texture
+        ctx.strokeStyle = this.EGAPalette.black;
+        ctx.lineWidth = 1;
+        
+        // Roof lines
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y);
+        ctx.lineTo(x + width + 10, y);
+        ctx.stroke();
     }
     
-    drawPendant(x, y, width, height) {
-        // Draw pendant chain
-        this.ctx.strokeStyle = '#C0C0C0'; // Silver
-        this.ctx.beginPath();
-        this.ctx.moveTo(x + width / 2, y);
-        this.ctx.lineTo(x + width / 2, y + height / 3);
-        this.ctx.stroke();
+    drawSierraWindow(ctx, x, y, width, height) {
+        // Window background
+        ctx.fillRect(x, y, width, height);
         
-        // Draw pendant itself (circle)
-        this.ctx.fillStyle = '#FFD700'; // Gold
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, y + height * 0.7, width / 2, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Window frame
+        ctx.strokeStyle = this.EGAPalette.white;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, height);
         
-        // Add a gem to the pendant
-        this.ctx.fillStyle = '#FF0000'; // Red gem
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, y + height * 0.7, width / 4, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Window cross
+        ctx.beginPath();
+        ctx.moveTo(x + width/2, y);
+        ctx.lineTo(x + width/2, y + height);
+        ctx.moveTo(x, y + height/2);
+        ctx.lineTo(x + width, y + height/2);
+        ctx.stroke();
+    }
+    
+    addSierraDithering(ctx, x, y, width, height, color1, color2) {
+        // Sierra games often used dithered patterns for textures
+        // This creates a simple checkerboard dithering pattern
+        const patternSize = 2; // 2x2 pixel pattern
+        
+        for (let pY = y; pY < y + height; pY += patternSize) {
+            for (let pX = x; pX < x + width; pX += patternSize) {
+                // Use a deterministic pattern for consistency
+                const isAlternate = ((Math.floor(pX / patternSize) + 
+                                   Math.floor(pY / patternSize)) % 2 === 0);
+                
+                ctx.fillStyle = isAlternate ? color1 : color2;
+                ctx.fillRect(
+                    pX, pY, 
+                    Math.min(patternSize, x + width - pX), 
+                    Math.min(patternSize, y + height - pY)
+                );
+            }
+        }
+    }
+    
+    drawObjects(objects) {
+        for (const obj of objects) {
+            // Scale object positions from the actual canvas to our virtual resolution
+            const scaledX = (obj.x / this.canvas.width) * this.virtualWidth;
+            const scaledY = (obj.y / this.canvas.height) * this.virtualHeight;
+            const scaledWidth = (obj.width / this.canvas.width) * this.virtualWidth;
+            const scaledHeight = (obj.height / this.canvas.height) * this.virtualHeight;
+            
+            switch(obj.type) {
+                case 'tree':
+                    this.drawSierraTree(this.virtualCtx, scaledX, scaledY, scaledWidth, scaledHeight);
+                    break;
+                case 'rock': 
+                    this.drawSierraRock(this.virtualCtx, scaledX, scaledY, scaledWidth, scaledHeight);
+                    break;
+                case 'path':
+                    this.drawSierraPathSegment(this.virtualCtx, scaledX, scaledY, scaledWidth, scaledHeight);
+                    break;
+                case 'door':
+                    this.drawSierraDoor(this.virtualCtx, scaledX, scaledY, scaledWidth, scaledHeight);
+                    break;
+                case 'pendant':
+                    this.drawSierraPendant(this.virtualCtx, scaledX, scaledY, scaledWidth, scaledHeight);
+                    break;
+                default:
+                    // Generic colored rectangle as fallback
+                    this.virtualCtx.fillStyle = obj.isExit ? this.EGAPalette.darkGray : 
+                                        obj.canTake ? this.EGAPalette.yellow : this.EGAPalette.brown;
+                    this.virtualCtx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+            }
+        }
+    }
+    
+    drawSierraTree(ctx, x, y, width, height) {
+        const trunkWidth = width * 0.4;
+        const trunkHeight = height * 0.4;
+        const trunkX = x + (width - trunkWidth) / 2;
+        const trunkY = y + height - trunkHeight;
+        
+        // Draw trunk
+        ctx.fillStyle = this.EGAPalette.brown;
+        ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
+        
+        // Draw tree foliage - Sierra style with detailed texture
+        ctx.fillStyle = this.EGAPalette.green;
+        
+        // Draw multiple triangular foliage sections
+        for (let i = 0; i < 3; i++) {
+            const sectionHeight = (height - trunkHeight) * 0.4;
+            const sectionY = y + i * sectionHeight * 0.7;
+            const sectionWidth = width * (1 - i * 0.2);
+            const sectionX = x + (width - sectionWidth) / 2;
+            
+            // Triangle shape for each section
+            ctx.beginPath();
+            ctx.moveTo(sectionX + sectionWidth/2, sectionY);
+            ctx.lineTo(sectionX + sectionWidth, sectionY + sectionHeight);
+            ctx.lineTo(sectionX, sectionY + sectionHeight);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+    
+    drawSierraRock(ctx, x, y, width, height) {
+        // Draw a rock with Sierra-style shading
+        ctx.fillStyle = this.EGAPalette.lightGray;
+        
+        // Irregular rock shape
+        ctx.beginPath();
+        ctx.moveTo(x + width * 0.2, y);
+        ctx.lineTo(x + width * 0.8, y);
+        ctx.lineTo(x + width, y + height * 0.6);
+        ctx.lineTo(x + width * 0.7, y + height);
+        ctx.lineTo(x + width * 0.3, y + height);
+        ctx.lineTo(x, y + height * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add a highlight
+        ctx.fillStyle = this.EGAPalette.white;
+        ctx.beginPath();
+        ctx.moveTo(x + width * 0.3, y + height * 0.3);
+        ctx.lineTo(x + width * 0.5, y + height * 0.2);
+        ctx.lineTo(x + width * 0.4, y + height * 0.4);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    drawSierraPathSegment(ctx, x, y, width, height) {
+        ctx.fillStyle = this.EGAPalette.brown;
+        ctx.fillRect(x, y, width, height);
+        
+        // Add dithering for texture
+        this.addSierraDithering(
+            ctx, x, y, width, height, 
+            this.EGAPalette.brown, this.EGAPalette.lightGray
+        );
+    }
+    
+    drawSierraDoor(ctx, x, y, width, height) {
+        // Door frame
+        ctx.fillStyle = this.EGAPalette.brown;
+        ctx.fillRect(x, y, width, height);
+        
+        // Door itself (inset)
+        ctx.fillStyle = this.EGAPalette.darkGray;
+        ctx.fillRect(x + 2, y + 2, width - 4, height - 4);
+        
+        // Door handle
+        ctx.fillStyle = this.EGAPalette.yellow;
+        ctx.fillRect(x + width * 0.8, y + height * 0.5, width * 0.1, width * 0.1);
+    }
+    
+    drawSierraPendant(ctx, x, y, width, height) {
+        // In Sierra style, important items usually stood out with bright colors
+        
+        // Pendant chain - single pixel line
+        ctx.strokeStyle = this.EGAPalette.lightGray;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + width/2, y);
+        ctx.lineTo(x + width/2, y + height * 0.3);
+        ctx.stroke();
+        
+        // Pendant body
+        ctx.fillStyle = this.EGAPalette.yellow;
+        ctx.beginPath();
+        ctx.arc(x + width/2, y + height * 0.6, width/2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Gem in center
+        ctx.fillStyle = this.EGAPalette.red;
+        ctx.beginPath();
+        ctx.arc(x + width/2, y + height * 0.6, width/4, 0, Math.PI * 2);
+        ctx.fill();
     }
     
     drawNPCs(npcs) {
         if (!npcs) return;
         
         for (const npc of npcs) {
+            // Scale NPC positions from the actual canvas to our virtual resolution
+            const scaledX = (npc.x / this.canvas.width) * this.virtualWidth;
+            const scaledY = (npc.y / this.canvas.height) * this.virtualHeight;
+            const scaledWidth = (npc.width / this.canvas.width) * this.virtualWidth;
+            const scaledHeight = (npc.height / this.canvas.height) * this.virtualHeight;
+            
             if (npc.type === 'oldMan') {
-                this.drawOldMan(npc.x, npc.y, npc.width, npc.height);
+                this.drawSierraOldMan(this.virtualCtx, scaledX, scaledY, scaledWidth, scaledHeight);
             } else {
                 // Generic colored rectangle as fallback
-                this.ctx.fillStyle = '#00ffff'; // Cyan for NPCs
-                this.ctx.fillRect(npc.x, npc.y, npc.width, npc.height);
+                this.virtualCtx.fillStyle = this.EGAPalette.cyan;
+                this.virtualCtx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
             }
         }
     }
     
-    drawOldMan(x, y, width, height) {
-        const headSize = width * 0.8;
-        const headY = y + height * 0.1;
-        const bodyY = headY + headSize;
-        const bodyHeight = height - (headSize + height * 0.1);
+    drawSierraOldMan(ctx, x, y, width, height) {
+        // Body - Sierra characters were often detailed but still pixelated
+        ctx.fillStyle = this.EGAPalette.blue; // Robe color
         
-        // Body
-        this.ctx.fillStyle = '#8B4513'; // Brown robe
-        this.ctx.fillRect(x, bodyY, width, bodyHeight);
+        // Body rectangle
+        ctx.fillRect(x + width * 0.25, y + height * 0.3, width * 0.5, height * 0.7);
         
         // Head
-        this.ctx.fillStyle = '#FFE4C4'; // Bisque (skin tone)
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, headY + headSize / 2, headSize / 2, 0, Math.PI * 2);
-        this.ctx.fill();
+        ctx.fillStyle = this.EGAPalette.lightGray; // Skin tone
+        ctx.beginPath();
+        ctx.arc(x + width * 0.5, y + height * 0.2, width * 0.2, 0, Math.PI * 2);
+        ctx.fill();
         
-        // Beard
-        this.ctx.fillStyle = '#FFFFFF'; // White beard
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, headY + headSize * 0.7, headSize / 2, 0, Math.PI);
-        this.ctx.fill();
+        // White beard - Sierra style (pixelated)
+        ctx.fillStyle = this.EGAPalette.white;
+        ctx.beginPath();
+        ctx.moveTo(x + width * 0.3, y + height * 0.2);
+        ctx.lineTo(x + width * 0.7, y + height * 0.2);
+        ctx.lineTo(x + width * 0.6, y + height * 0.4);
+        ctx.lineTo(x + width * 0.4, y + height * 0.4);
+        ctx.closePath();
+        ctx.fill();
         
-        // Eyes
-        this.ctx.fillStyle = '#000000'; // Black eyes
-        const eyeSize = headSize * 0.15;
-        const eyeY = headY + headSize * 0.4;
-        this.ctx.beginPath();
-        this.ctx.arc(x + width * 0.35, eyeY, eyeSize, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.beginPath();
-        this.ctx.arc(x + width * 0.65, eyeY, eyeSize, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Eyes (simple pixels)
+        ctx.fillStyle = this.EGAPalette.black;
+        ctx.fillRect(x + width * 0.4, y + height * 0.15, 1, 1);
+        ctx.fillRect(x + width * 0.6, y + height * 0.15, 1, 1);
+        
+        // Staff - classic Sierra NPCs often held items
+        ctx.strokeStyle = this.EGAPalette.brown;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + width * 0.8, y + height * 0.3);
+        ctx.lineTo(x + width * 0.8, y + height);
+        ctx.stroke();
     }
     
     drawPlayer(player) {
-        const x = player.x;
-        const y = player.y;
-        const width = player.width;
-        const height = player.height;
+        // Scale player position from the actual canvas to our virtual resolution
+        const scaledX = (player.x / this.canvas.width) * this.virtualWidth;
+        const scaledY = (player.y / this.canvas.height) * this.virtualHeight;
+        const scaledWidth = (player.width / this.canvas.width) * this.virtualWidth;
+        const scaledHeight = (player.height / this.canvas.height) * this.virtualHeight;
+        
         const direction = player.drawStyle.direction;
         
-        // Create a simple walking animation based on position
-        const walkCycle = Math.floor(x + y) % 4 === 0;
-        
-        // Draw body
-        const headSize = width;
-        const headY = y;
-        const bodyY = headY + headSize;
-        const bodyHeight = height - headSize;
-        
-        // Head
-        this.ctx.fillStyle = player.drawStyle.headColor;
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, headY + headSize / 2, headSize / 2, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Classic Sierra character - pixelated with minimal detail
         
         // Body
-        this.ctx.fillStyle = player.drawStyle.shirtColor;
-        this.ctx.fillRect(x, bodyY, width, bodyHeight / 2);
+        this.virtualCtx.fillStyle = this.EGAPalette.lightBlue;
+        this.virtualCtx.fillRect(
+            scaledX + scaledWidth * 0.25, 
+            scaledY + scaledWidth, 
+            scaledWidth * 0.5, 
+            scaledHeight * 0.6
+        );
         
-        // Legs with walking animation
-        this.ctx.fillStyle = player.drawStyle.pantsColor;
-        if (walkCycle) {
-            // Right leg forward
-            this.ctx.fillRect(x, bodyY + bodyHeight / 2, width / 2, bodyHeight / 2);
-            this.ctx.fillRect(x + width / 2, bodyY + bodyHeight / 2 + 2, width / 2, bodyHeight / 2 - 2);
+        // Head
+        this.virtualCtx.fillStyle = this.EGAPalette.lightGray;
+        this.virtualCtx.beginPath();
+        this.virtualCtx.arc(
+            scaledX + scaledWidth * 0.5, 
+            scaledY + scaledWidth * 0.5, 
+            scaledWidth * 0.5, 
+            0, Math.PI * 2
+        );
+        this.virtualCtx.fill();
+        
+        // Legs
+        const walkingFrame = Math.floor(scaledX + scaledY) % 8 < 4; // Simple animation
+        this.virtualCtx.fillStyle = this.EGAPalette.blue;
+        
+        if (walkingFrame) {
+            // First walking frame
+            this.virtualCtx.fillRect(
+                scaledX + scaledWidth * 0.3, 
+                scaledY + scaledHeight * 0.6, 
+                scaledWidth * 0.15, 
+                scaledHeight * 0.4
+            );
+            this.virtualCtx.fillRect(
+                scaledX + scaledWidth * 0.55, 
+                scaledY + scaledHeight * 0.6, 
+                scaledWidth * 0.15, 
+                scaledHeight * 0.4
+            );
         } else {
-            // Left leg forward
-            this.ctx.fillRect(x, bodyY + bodyHeight / 2 + 2, width / 2, bodyHeight / 2 - 2);
-            this.ctx.fillRect(x + width / 2, bodyY + bodyHeight / 2, width / 2, bodyHeight / 2);
+            // Second walking frame
+            this.virtualCtx.fillRect(
+                scaledX + scaledWidth * 0.25, 
+                scaledY + scaledHeight * 0.6, 
+                scaledWidth * 0.15, 
+                scaledHeight * 0.4
+            );
+            this.virtualCtx.fillRect(
+                scaledX + scaledWidth * 0.6, 
+                scaledY + scaledHeight * 0.6, 
+                scaledWidth * 0.15, 
+                scaledHeight * 0.4
+            );
         }
         
-        // Eyes based on direction
-        this.drawPlayerEyes(x, y, width, headSize, headY, direction);
-        
-        // Hair
-        this.ctx.fillStyle = player.drawStyle.hairColor;
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, headY + headSize / 4, headSize / 2, Math.PI, Math.PI * 2);
-        this.ctx.fill();
-    }
-    
-    drawPlayerEyes(x, y, width, headSize, headY, direction) {
-        const eyeSize = headSize * 0.15;
-        const eyeY = headY + headSize * 0.4;
-        
-        // White of eyes
-        this.ctx.fillStyle = '#FFFFFF';
+        // Face (direction-specific)
+        // For simplicity, just use dots for eyes
+        this.virtualCtx.fillStyle = this.EGAPalette.black;
         
         if (direction === 'left') {
-            // Eyes facing left
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.25, eyeY, eyeSize, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Pupils
-            this.ctx.fillStyle = '#000000';
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.2, eyeY, eyeSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
-        } 
-        else if (direction === 'right') {
-            // Eyes facing right
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.75, eyeY, eyeSize, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Pupils
-            this.ctx.fillStyle = '#000000';
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.8, eyeY, eyeSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
-        } 
-        else {
-            // Front-facing eyes
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.35, eyeY, eyeSize, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.65, eyeY, eyeSize, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Pupils with up/down variation
-            this.ctx.fillStyle = '#000000';
-            const pupilOffset = direction === 'up' ? -2 : 2;
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.35, eyeY + pupilOffset, eyeSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.65, eyeY + pupilOffset, eyeSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
+            this.virtualCtx.fillRect(scaledX + scaledWidth * 0.35, scaledY + scaledWidth * 0.4, 2, 2);
+        } else if (direction === 'right') {
+            this.virtualCtx.fillRect(scaledX + scaledWidth * 0.65, scaledY + scaledWidth * 0.4, 2, 2);
+        } else {
+            // Front facing
+            this.virtualCtx.fillRect(scaledX + scaledWidth * 0.4, scaledY + scaledWidth * 0.4, 2, 2);
+            this.virtualCtx.fillRect(scaledX + scaledWidth * 0.6, scaledY + scaledWidth * 0.4, 2, 2);
         }
     }
     
