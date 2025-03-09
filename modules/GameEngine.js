@@ -6,8 +6,8 @@ export default class GameEngine {
         this.inputHandler = inputHandler;
         this.rooms = rooms;
         this.textOutput = textOutput;
-        this.roomNameDisplay = roomNameDisplay;
-        this.scoreDisplay = scoreDisplay;
+        this.roomNameDisplay = roomNameDisplay || { textContent: '' };
+        this.scoreDisplay = scoreDisplay || { textContent: '' };
         
         this.currentRoom = 'forest';
         this.gameFlags = {};
@@ -51,8 +51,10 @@ export default class GameEngine {
         // Check for room transitions
         this.checkRoomTransitions();
         
-        // Update room name display
-        this.roomNameDisplay.textContent = this.rooms[this.currentRoom].name;
+        // Safely update room name display
+        if (this.roomNameDisplay && this.rooms[this.currentRoom]) {
+            this.roomNameDisplay.textContent = this.rooms[this.currentRoom].name;
+        }
     }
     
     render() {

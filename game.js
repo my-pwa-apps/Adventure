@@ -12,11 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const textOutput = document.getElementById('textOutput');
     const commandInput = document.getElementById('commandInput');
     const roomNameDisplay = document.getElementById('roomName');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const submitButton = document.getElementById('submitCommand');
+    
+    // Check if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     const player = new Player(160, 150);
     const renderer = new Renderer(canvas, rooms);
     const commandParser = new CommandParser(textOutput);
-    const inputHandler = new InputHandler(commandInput, commandParser);
+    const inputHandler = new InputHandler(commandInput, commandParser, submitButton, isMobile);
     
     // Initialize game engine with all components
     const gameEngine = new GameEngine({
@@ -26,7 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
         inputHandler,
         rooms,
         textOutput,
-        roomNameDisplay
+        roomNameDisplay,  // Make sure this element exists
+        scoreDisplay,
+        isMobile
     });
     
     // Start the game
