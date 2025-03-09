@@ -133,9 +133,3 @@ export const rooms = {
         description: 'You are inside the small cottage. It\'s a cozy space with simple furniture.'
     }
 };
-
-// You can add more game data here as the game expands:
-// - Items database
-// - NPC database
-// - Quest information
-// - Dialog trees

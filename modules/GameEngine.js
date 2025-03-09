@@ -25,17 +25,17 @@ export default class GameEngine {
         // Start input handling
         this.inputHandler.initialize();
         
-        // Start game loop
-        this.gameLoop();
+        // Start game loop with timestamp
+        requestAnimationFrame(this.gameLoop.bind(this));
     }
     
-    gameLoop() {
-        this.update();
+    gameLoop(timestamp) {
+        this.update(timestamp);
         this.render();
-        requestAnimationFrame(() => this.gameLoop());
+        requestAnimationFrame(this.gameLoop.bind(this));
     }
     
-    update() {
+    update(timestamp) {
         // Update player
         this.player.update();
         

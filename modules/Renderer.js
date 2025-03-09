@@ -56,25 +56,23 @@ export default class Renderer {
         // Cache for background rendering
         this.backgroundCache = {};
         
-        // Animation frame counter
+        // Animation variables
         this.animationFrame = 0;
+        this.animationTimer = 0;
+        this.lastTimestamp = 0;
         
         // Use the grid size of KQ3/4 for more authentic pixel look
         this.pixelSize = 2;
-    }
-    
-    setSpriteManager(spriteManager) {
-        this.spriteManager = spriteManager;
     }
     
     render(currentRoomId, player) {
         // Clear virtual canvas
         this.virtualCtx.clearRect(0, 0, this.virtualWidth, this.virtualHeight);
         
-        const room = this.rooms[currentRoomId];
+        // Update animation frame - KQ3/4 style (2-frame animations)
+        this.animationFrame = Math.floor(Date.now() / 250) % 2;
         
-        // Animate at KQ3/4 speed - these games had slower, chunkier animations
-        this.animationFrame = Math.floor(Date.now() / 250) % 2; // Only 2 frames in KQ3/4
+        const room = this.rooms[currentRoomId];
         
         // Draw background
         this.drawBackground(room, currentRoomId);
@@ -429,7 +427,7 @@ export default class Renderer {
     
     drawSierraRock(ctx, x, y, width, height) {
         // Draw a rock with Sierra-style shading
-        ctx.fillStyle = this.VGAPalette.lightGray;
+        ctx.fillStyle = this.EGAPalette.lightGray;
         
         // Irregular rock shape
         ctx.beginPath();
@@ -443,7 +441,7 @@ export default class Renderer {
         ctx.fill();
         
         // Add a highlight
-        ctx.fillStyle = this.VGAPalette.white;
+        ctx.fillStyle = this.EGAPalette.white;
         ctx.beginPath();
         ctx.moveTo(x + width * 0.3, y + height * 0.3);
         ctx.lineTo(x + width * 0.5, y + height * 0.2);
@@ -453,27 +451,27 @@ export default class Renderer {
     }
     
     drawSierraPathSegment(ctx, x, y, width, height) {
-        ctx.fillStyle = this.VGAPalette.kqDirt;
+        ctx.fillStyle = this.EGAPalette.kq3Ground;
         ctx.fillRect(x, y, width, height);
         
         // Add dithering for texture
-        this.addSierraDithering(
+        this.addEGADithering(
             ctx, x, y, width, height, 
-            this.VGAPalette.kqDirt, this.VGAPalette.lightGray
+            this.EGAPalette.kq3Ground, this.EGAPalette.lightGray
         );
     }
     
     drawSierraDoor(ctx, x, y, width, height) {
         // Door frame
-        ctx.fillStyle = this.VGAPalette.kqWood;
+        ctx.fillStyle = this.EGAPalette.brown;
         ctx.fillRect(x, y, width, height);
         
         // Door itself (inset)
-        ctx.fillStyle = this.VGAPalette.darkGray;
+        ctx.fillStyle = this.EGAPalette.darkGray;
         ctx.fillRect(x + 2, y + 2, width - 4, height - 4);
         
         // Door handle
-        ctx.fillStyle = this.VGAPalette.yellow;
+        ctx.fillStyle = this.EGAPalette.yellow;
         ctx.fillRect(x + width * 0.8, y + height * 0.5, width * 0.1, width * 0.1);
     }
     
@@ -481,7 +479,7 @@ export default class Renderer {
         // In Sierra style, important items usually stood out with bright colors
         
         // Pendant chain - single pixel line
-        ctx.strokeStyle = this.VGAPalette.lightGray;
+        ctx.strokeStyle = this.EGAPalette.lightGray;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x + width/2, y);
@@ -489,13 +487,13 @@ export default class Renderer {
         ctx.stroke();
         
         // Pendant body
-        ctx.fillStyle = this.VGAPalette.yellow;
+        ctx.fillStyle = this.EGAPalette.yellow;
         ctx.beginPath();
         ctx.arc(x + width/2, y + height * 0.6, width/2, 0, Math.PI * 2);
         ctx.fill();
         
         // Gem in center
-        ctx.fillStyle = this.VGAPalette.red;
+        ctx.fillStyle = this.EGAPalette.red;
         ctx.beginPath();
         ctx.arc(x + width/2, y + height * 0.6, width/4, 0, Math.PI * 2);
         ctx.fill();
@@ -503,7 +501,7 @@ export default class Renderer {
     
     drawSierraTable(ctx, x, y, width, height) {
         // Table top
-        ctx.fillStyle = this.VGAPalette.kqWood;
+        ctx.fillStyle = this.EGAPalette.brown;
         ctx.fillRect(x, y, width, height * 0.3);
         
         // Table legs
@@ -512,13 +510,13 @@ export default class Renderer {
         ctx.fillRect(x, y + height * 0.3, legWidth, legHeight);
         ctx.fillRect(x + width - legWidth, y + height * 0.3, legWidth, legHeight);
         
-        // Add some items on the table
-        // Small book
-        ctx.fillStyle = this.VGAPalette.red;
+        // Add some items on the table - KQ3/4 style simpler items
+        // Book
+        ctx.fillStyle = this.EGAPalette.red;
         ctx.fillRect(x + width * 0.2, y + height * 0.1, width * 0.15, height * 0.15);
         
         // Plate
-        ctx.fillStyle = this.VGAPalette.white;
+        ctx.fillStyle = this.EGAPalette.white;
         ctx.beginPath();
         ctx.arc(x + width * 0.6, y + height * 0.15, width * 0.1, 0, Math.PI * 2);
         ctx.fill();
@@ -526,7 +524,7 @@ export default class Renderer {
     
     drawSierraChair(ctx, x, y, width, height) {
         // Chair seat
-        ctx.fillStyle = this.VGAPalette.kqWood;
+        ctx.fillStyle = this.EGAPalette.brown;
         ctx.fillRect(x, y + height * 0.4, width, height * 0.2);
         
         // Chair back
@@ -719,35 +717,5 @@ export default class Renderer {
             ctx.fillRect(x + width*0.4, y + height*0.7, width*0.2, height*0.3);
             ctx.fillRect(x + width*0.6, y + height*0.7, width*0.2, height*0.3);
         }
-    }
-    
-    // Draw loading screen during sprite loading
-    drawLoadingScreen(progress) {
-        this.ctx.fillStyle = '#000000';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '20px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Loading...', this.canvas.width / 2, this.canvas.height / 2 - 30);
-        
-        // Draw progress bar
-        const barWidth = this.canvas.width * 0.7;
-        const barHeight = 20;
-        const barX = (this.canvas.width - barWidth) / 2;
-        const barY = this.canvas.height / 2;
-        
-        // Draw empty bar
-        this.ctx.strokeStyle = '#ffffff';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(barX, barY, barWidth, barHeight);
-        
-        // Draw filled portion
-        this.ctx.fillStyle = '#5555ff';
-        this.ctx.fillRect(barX + 2, barY + 2, (barWidth - 4) * progress, barHeight - 4);
-        
-        // Show percentage
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText(`${Math.round(progress * 100)}%`, this.canvas.width / 2, barY + barHeight + 30);
     }
 }
