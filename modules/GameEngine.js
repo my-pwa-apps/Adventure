@@ -1,5 +1,5 @@
 export default class GameEngine {
-    constructor({ player, renderer, commandParser, inputHandler, rooms, textOutput, roomNameDisplay }) {
+    constructor({ player, renderer, commandParser, inputHandler, rooms, textOutput, roomNameDisplay, scoreDisplay }) {
         this.player = player;
         this.renderer = renderer;
         this.commandParser = commandParser;
@@ -7,10 +7,19 @@ export default class GameEngine {
         this.rooms = rooms;
         this.textOutput = textOutput;
         this.roomNameDisplay = roomNameDisplay;
+        this.scoreDisplay = scoreDisplay;
         
         this.currentRoom = 'forest';
         this.gameFlags = {};
         this.inventory = [];
+        this.score = 0;
+        this.maxScore = 100;
+        this.gameOver = false;
+        
+        // Sierra-style text display
+        this.narrationQueue = [];
+        this.narrationTimer = null;
+        this.narrationSpeed = 30; // ms per character
         
         // Connect systems
         this.commandParser.setGameEngine(this);
@@ -51,7 +60,23 @@ export default class GameEngine {
     }
     
     displayMessage(message) {
-        this.textOutput.textContent = message;
+        // Clear any existing narration
+        if (this.narrationTimer) {
+            clearTimeout(this.narrationTimer);
+        }
+        
+        this.textOutput.textContent = '';
+        let index = 0;
+        
+        const narrate = () => {
+            if (index < message.length) {
+                this.textOutput.textContent += message.charAt(index);
+                index++;
+                this.narrationTimer = setTimeout(narrate, this.narrationSpeed);
+            }
+        };
+        
+        narrate();
     }
     
     getCurrentRoom() {
@@ -76,6 +101,51 @@ export default class GameEngine {
                 this.changeRoom(obj.leadsTo);
                 break;
             }
+        }
+    }
+    
+    handleDeath(message) {
+        this.gameOver = true;
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'death-overlay';
+        
+        const deathMessage = document.createElement('div');
+        deathMessage.className = 'death-message';
+        deathMessage.textContent = message || "You have died! Be more careful next time.";
+        
+        const restoreButton = document.createElement('button');
+        restoreButton.className = 'restore-button';
+        restoreButton.textContent = "Restore Game";
+        restoreButton.onclick = () => this.restoreGame();
+        
+        overlay.appendChild(deathMessage);
+        overlay.appendChild(restoreButton);
+        document.body.appendChild(overlay);
+    }
+
+    restoreGame() {
+        const overlay = document.querySelector('.death-overlay');
+        if (overlay) {
+            document.body.removeChild(overlay);
+        }
+        
+        this.gameOver = false;
+        this.currentRoom = 'forest';
+        this.player.x = 160;
+        this.player.y = 150;
+        
+        this.displayMessage(this.rooms[this.currentRoom].description);
+        requestAnimationFrame(this.gameLoop.bind(this));
+    }
+
+    addPoints(points, reason = "") {
+        this.score += points;
+        if (reason) {
+            this.displayMessage(`You just earned ${points} points ${reason}!`);
+        }
+        if (this.scoreDisplay) {
+            this.scoreDisplay.textContent = this.score;
         }
     }
     

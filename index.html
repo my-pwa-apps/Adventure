@@ -2,25 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>King's Quest Adventure</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <div class="game-title">Adventure Quest</div>
+        <div class="game-header">
+            <div class="game-title">Quest for Adventure</div>
+            <div class="score-container">Score: <span id="scoreDisplay">0</span> of 100</div>
+        </div>
+        
         <canvas id="gameCanvas" width="320" height="200"></canvas>
         <div class="game-text-output" id="textOutput">Welcome to Adventure Quest! Use arrow keys to move and type commands below.</div>
+        
         <div class="game-input-container">
             <span>></span>
             <input type="text" id="commandInput" placeholder="Enter command (e.g. look, take apple, talk to man)">
+            <button id="submitCommand">Enter</button>
         </div>
-        <div class="game-controls">
-            <div class="controls-info">
-                <p>Movement: Arrow Keys</p>
-                <p>Commands: look, take [item], use [item], talk to [person]</p>
+
+        <div id="mobileControls" class="mobile-controls">
+            <div class="d-pad">
+                <button id="upBtn" class="d-btn up-btn">▲</button>
+                <button id="leftBtn" class="d-btn left-btn">◀</button>
+                <button id="rightBtn" class="d-btn right-btn">▶</button>
+                <button id="downBtn" class="d-btn down-btn">▼</button>
             </div>
-            <div class="room-name" id="roomName">Forest Entrance</div>
+            <div class="command-shortcuts">
+                <button class="cmd-btn" data-command="look">Look</button>
+                <button class="cmd-btn" data-command="inventory">Inv</button>
+                <button class="cmd-btn" data-command="talk to">Talk</button>
+                <button class="cmd-btn" data-command="use">Use</button>
+                <button class="cmd-btn" data-command="open">Open</button>
+            </div>
         </div>
     </div>
     <script src="game.js" type="module"></script>
