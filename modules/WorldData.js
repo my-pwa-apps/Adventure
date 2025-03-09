@@ -17,7 +17,7 @@ export const rooms = {
     'forest': {
         name: 'Forest Entrance',
         background: '#005500',
-        backgroundSprite: 'forestBg',
+        type: 'forest',
         objects: [
             { 
                 name: 'tree', 
@@ -26,7 +26,7 @@ export const rooms = {
                 width: 30, 
                 height: 80, 
                 description: 'A tall pine tree.',
-                sprite: 'tree'
+                type: 'tree'
             },
             { 
                 name: 'rock', 
@@ -36,7 +36,7 @@ export const rooms = {
                 height: 15, 
                 description: 'A moss-covered rock.', 
                 canTake: true,
-                sprite: 'rock'
+                type: 'rock'
             },
             { 
                 name: 'path', 
@@ -47,7 +47,7 @@ export const rooms = {
                 description: 'A path leading to a cottage.', 
                 isExit: true, 
                 leadsTo: 'cottage',
-                sprite: 'path'
+                type: 'path'
             }
         ],
         npcs: [
@@ -59,7 +59,7 @@ export const rooms = {
                 height: 40, 
                 description: 'An old man with a long beard.', 
                 dialogue: "Hello traveler! I've lost my pendant. If you find it, I'll reward you!",
-                sprite: 'oldMan'
+                type: 'oldMan'
             }
         ],
         description: 'You are at the entrance to a dark forest. There is a path leading south.'
@@ -67,7 +67,7 @@ export const rooms = {
     'cottage': {
         name: 'Cottage',
         background: '#553311',
-        backgroundSprite: 'cottageBg',
+        type: 'cottage',
         objects: [
             { 
                 name: 'door', 
@@ -76,7 +76,7 @@ export const rooms = {
                 width: 40, 
                 height: 80, 
                 description: 'A wooden door to the cottage.',
-                sprite: 'door'
+                type: 'door'
             },
             { 
                 name: 'pendant', 
@@ -86,7 +86,7 @@ export const rooms = {
                 height: 10, 
                 description: 'A golden pendant.', 
                 canTake: true,
-                sprite: 'pendant'
+                type: 'pendant'
             },
             { 
                 name: 'path', 
@@ -97,7 +97,7 @@ export const rooms = {
                 description: 'A path leading back to the forest.', 
                 isExit: true, 
                 leadsTo: 'forest',
-                sprite: 'path'
+                type: 'path'
             }
         ],
         npcs: [],

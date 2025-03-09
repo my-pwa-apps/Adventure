@@ -6,7 +6,16 @@ export default class Player {
         this.height = 30;
         this.color = '#ffff00';
         this.speed = 2;
-        this.sprite = 'player'; // Added sprite reference
+        
+        // Visual properties for procedural drawing
+        this.drawStyle = {
+            bodyColor: '#3366cc',
+            headColor: '#ffcc99',
+            hairColor: '#663300',
+            shirtColor: '#3366cc',
+            pantsColor: '#333366',
+            direction: 'down' // down, up, left, right
+        };
         
         this.gameEngine = null;
         
@@ -44,15 +53,19 @@ export default class Player {
         // Handle movement based on key presses
         if (this.keys.ArrowUp) {
             this.y -= this.speed;
+            this.drawStyle.direction = 'up';
         }
         if (this.keys.ArrowDown) {
             this.y += this.speed;
+            this.drawStyle.direction = 'down';
         }
         if (this.keys.ArrowLeft) {
             this.x -= this.speed;
+            this.drawStyle.direction = 'left';
         }
         if (this.keys.ArrowRight) {
             this.x += this.speed;
+            this.drawStyle.direction = 'right';
         }
         
         // Keep player within canvas bounds
