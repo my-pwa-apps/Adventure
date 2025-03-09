@@ -18,20 +18,34 @@ export default class CommandParser {
         }
         
         // Basic commands
-        if (verb === 'look' || verb === 'examine') {
-            this.handleLookCommand(words);
-        } else if (verb === 'take' || verb === 'get') {
-            this.handleTakeCommand(words);
-        } else if (verb === 'use') {
-            this.handleUseCommand(words);
-        } else if (verb === 'talk' && words[1] === 'to') {
-            this.handleTalkCommand(words);
-        } else if (verb === 'inventory' || verb === 'i') {
-            this.gameEngine.showInventory();
-        } else if (verb === 'help') {
-            this.gameEngine.displayMessage("Commands: look, take [item], use [item], talk to [person], inventory");
-        } else {
-            this.gameEngine.displayMessage("I don't understand that command.");
+        switch (verb) {
+            case 'look':
+            case 'examine':
+                this.handleLookCommand(words);
+                break;
+            case 'take':
+            case 'get':
+                this.handleTakeCommand(words);
+                break;
+            case 'use':
+                this.handleUseCommand(words);
+                break;
+            case 'inventory':
+            case 'i':
+                this.gameEngine.showInventory();
+                break;
+            case 'help':
+                this.gameEngine.displayMessage("Commands: look, take [item], use [item], talk to [person], inventory");
+                break;
+            case 'talk':
+                if (words[1] === 'to') {
+                    this.handleTalkCommand(words);
+                } else {
+                    this.gameEngine.displayMessage("Did you mean 'talk to [person]'?");
+                }
+                break;
+            default:
+                this.gameEngine.displayMessage("I don't understand that command.");
         }
     }
     

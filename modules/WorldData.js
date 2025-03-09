@@ -1,18 +1,5 @@
 // Game world data definitions
 
-// List of all sprites to load
-export const spriteList = [
-    { id: 'player', path: 'assets/sprites/player.png' },
-    { id: 'oldMan', path: 'assets/sprites/old_man.png' },
-    { id: 'tree', path: 'assets/sprites/tree.png' },
-    { id: 'rock', path: 'assets/sprites/rock.png' },
-    { id: 'path', path: 'assets/sprites/path.png' },
-    { id: 'door', path: 'assets/sprites/door.png' },
-    { id: 'pendant', path: 'assets/sprites/pendant.png' },
-    { id: 'forestBg', path: 'assets/backgrounds/forest.png' },
-    { id: 'cottageBg', path: 'assets/backgrounds/cottage.png' }
-];
-
 export const rooms = {
     'forest': {
         name: 'Forest Entrance',

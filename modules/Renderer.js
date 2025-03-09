@@ -19,6 +19,9 @@ export default class Renderer {
             water: ['#0000aa', '#0000cc', '#0000ee', '#0000ff'],
             sky: ['#3399ff', '#55aaff', '#77ccff', '#99eeff']
         };
+        
+        // Cache for background rendering
+        this.backgroundCache = {};
     }
     
     setSpriteManager(spriteManager) {
@@ -31,8 +34,8 @@ export default class Renderer {
         
         const room = this.rooms[currentRoomId];
         
-        // Draw background
-        this.drawBackground(room);
+        // Draw background (from cache if available)
+        this.drawBackground(room, currentRoomId);
         
         // Draw objects
         this.drawObjects(room.objects);
@@ -44,108 +47,132 @@ export default class Renderer {
         this.drawPlayer(player);
     }
     
-    drawBackground(room) {
+    drawBackground(room, roomId) {
+        // Check if we have a cached background
+        if (this.backgroundCache[roomId]) {
+            this.ctx.drawImage(this.backgroundCache[roomId], 0, 0);
+            return;
+        }
+        
+        // Create an off-screen canvas for background caching
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = this.canvas.width;
+        bgCanvas.height = this.canvas.height;
+        const bgCtx = bgCanvas.getContext('2d');
+        
         // Draw base background color
-        this.ctx.fillStyle = room.background;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        bgCtx.fillStyle = room.background;
+        bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
         
         // Generate background based on room type
         if (room.type === 'forest') {
-            this.drawForestBackground();
+            this.drawForestBackground(bgCtx, bgCanvas);
         } else if (room.type === 'cottage') {
-            this.drawCottageBackground();
+            this.drawCottageBackground(bgCtx, bgCanvas);
         }
         
         // Add some randomized details to make the background more interesting
-        this.drawRandomizedDetails(room.type);
+        this.drawRandomizedDetails(room.type, bgCtx, bgCanvas);
+        
+        // Store the rendered background in cache
+        this.backgroundCache[roomId] = bgCanvas;
+        
+        // Draw the background to the main canvas
+        this.ctx.drawImage(bgCanvas, 0, 0);
     }
     
-    drawForestBackground() {
+    drawForestBackground(ctx, canvas) {
         // Draw sky
-        this.ctx.fillStyle = '#87ceeb';  // Sky blue
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height / 3);
+        ctx.fillStyle = '#87ceeb';  // Sky blue
+        ctx.fillRect(0, 0, canvas.width, canvas.height / 3);
         
         // Draw distant trees (simplified shapes)
-        for (let x = 0; x < this.canvas.width; x += 20) {
+        for (let x = 0; x < canvas.width; x += 20) {
             const height = 30 + Math.random() * 20;
-            this.ctx.fillStyle = this.getRandomColor(this.palettes.foliage);
-            this.ctx.fillRect(x, this.canvas.height / 3 - height, 15, height);
+            ctx.fillStyle = this.getRandomColor(this.palettes.foliage);
+            ctx.fillRect(x, canvas.height / 3 - height, 15, height);
         }
         
         // Draw ground
-        this.ctx.fillStyle = '#228B22';  // Forest green
-        this.ctx.fillRect(0, this.canvas.height / 3, this.canvas.width, this.canvas.height * 2/3);
+        ctx.fillStyle = '#228B22';  // Forest green
+        ctx.fillRect(0, canvas.height / 3, canvas.width, canvas.height * 2/3);
         
         // Add some noise/texture to the ground
-        this.addNoiseTexture(0, this.canvas.height / 3, this.canvas.width, this.canvas.height * 2/3, 
-                           this.palettes.grass, 0.1);
+        this.addNoiseTexture(0, canvas.height / 3, canvas.width, canvas.height * 2/3, 
+                           this.palettes.grass, 0.1, ctx);
     }
     
-    drawCottageBackground() {
+    drawCottageBackground(ctx, canvas) {
         // Draw sky
-        this.ctx.fillStyle = '#87ceeb';  // Sky blue
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height / 3);
+        ctx.fillStyle = '#87ceeb';  // Sky blue
+        ctx.fillRect(0, 0, canvas.width, canvas.height / 3);
         
         // Draw hills
-        this.ctx.fillStyle = '#228B22';  // Forest green
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, this.canvas.height / 3);
+        ctx.fillStyle = '#228B22';  // Forest green
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 3);
         
-        // Create wavy hills
-        for (let x = 0; x < this.canvas.width; x += 50) {
-            const height = Math.random() * 20;
-            this.ctx.lineTo(x, this.canvas.height / 3 + height);
+        // Create wavy hills with a deterministic pattern for caching
+        const seed = 12345; // Fixed seed for reproducibility
+        for (let x = 0; x < canvas.width; x += 50) {
+            // Use a deterministic function instead of Math.random()
+            const height = ((x * seed) % 20);
+            ctx.lineTo(x, canvas.height / 3 + height);
         }
-        this.ctx.lineTo(this.canvas.width, this.canvas.height / 3);
-        this.ctx.closePath();
-        this.ctx.fill();
+        ctx.lineTo(canvas.width, canvas.height / 3);
+        ctx.closePath();
+        ctx.fill();
         
         // Draw ground
-        this.ctx.fillStyle = '#8B4513';  // Saddle brown for dirt
-        this.ctx.fillRect(0, this.canvas.height / 3, this.canvas.width, this.canvas.height * 2/3);
+        ctx.fillStyle = '#8B4513';  // Saddle brown for dirt
+        ctx.fillRect(0, canvas.height / 3, canvas.width, canvas.height * 2/3);
         
         // Draw a simple cottage in the background
-        this.ctx.fillStyle = '#A0522D';  // Brown for cottage
-        this.ctx.fillRect(80, 60, 160, 80);
+        ctx.fillStyle = '#A0522D';  // Brown for cottage
+        ctx.fillRect(80, 60, 160, 80);
         
         // Roof
-        this.ctx.fillStyle = '#8B4513';  // Darker brown for roof
-        this.ctx.beginPath();
-        this.ctx.moveTo(70, 60);
-        this.ctx.lineTo(160, 30);
-        this.ctx.lineTo(250, 60);
-        this.ctx.closePath();
-        this.ctx.fill();
+        ctx.fillStyle = '#8B4513';  // Darker brown for roof
+        ctx.beginPath();
+        ctx.moveTo(70, 60);
+        ctx.lineTo(160, 30);
+        ctx.lineTo(250, 60);
+        ctx.closePath();
+        ctx.fill();
         
         // Add some noise/texture to the ground
-        this.addNoiseTexture(0, this.canvas.height / 3, this.canvas.width, this.canvas.height * 2/3, 
-                           this.palettes.dirt, 0.1);
+        this.addNoiseTexture(0, canvas.height / 3, canvas.width, canvas.height * 2/3, 
+                           this.palettes.dirt, 0.1, ctx);
     }
     
-    drawRandomizedDetails(roomType) {
-        // Add randomized details based on room type
+    drawRandomizedDetails(roomType, ctx, canvas) {
+        // Use deterministic pattern for caching consistency
+        const seed = roomType === 'forest' ? 54321 : 98765;
         const numDetails = 20;
         const palette = roomType === 'forest' ? this.palettes.grass : this.palettes.dirt;
         
         for (let i = 0; i < numDetails; i++) {
-            const x = Math.random() * this.canvas.width;
-            const y = (this.canvas.height / 3) + Math.random() * (this.canvas.height * 2/3);
-            const size = 2 + Math.random() * 5;
+            const x = (i * seed) % canvas.width;
+            const y = (canvas.height / 3) + ((i * seed * 31) % (canvas.height * 2/3));
+            const size = 2 + (i % 5);
             
-            this.ctx.fillStyle = this.getRandomColor(palette);
-            this.ctx.fillRect(x, y, size, size);
+            ctx.fillStyle = palette[i % palette.length];
+            ctx.fillRect(x, y, size, size);
         }
     }
     
-    addNoiseTexture(x, y, width, height, colorPalette, density) {
-        // Add noise pixels for texture
-        for (let i = 0; i < width * height * density; i++) {
-            const px = x + Math.random() * width;
-            const py = y + Math.random() * height;
-            const color = this.getRandomColor(colorPalette);
+    addNoiseTexture(x, y, width, height, colorPalette, density, ctx = this.ctx) {
+        // Use a deterministic pattern for texture when cached
+        const pixelsToAdd = Math.floor(width * height * density);
+        const seed = 42; // Fixed seed
+        
+        for (let i = 0; i < pixelsToAdd; i++) {
+            const px = x + ((i * seed) % width);
+            const py = y + ((i * seed * 27) % height);
+            const color = colorPalette[i % colorPalette.length];
             
-            this.ctx.fillStyle = color;
-            this.ctx.fillRect(px, py, this.pixelSize, this.pixelSize);
+            ctx.fillStyle = color;
+            ctx.fillRect(px, py, this.pixelSize, this.pixelSize);
         }
     }
     
@@ -156,26 +183,27 @@ export default class Renderer {
     drawObjects(objects) {
         for (const obj of objects) {
             // Different drawing methods based on object type
-            if (obj.type === 'tree') {
-                this.drawTree(obj.x, obj.y, obj.width, obj.height);
-            } else if (obj.type === 'rock') {
-                this.drawRock(obj.x, obj.y, obj.width, obj.height);
-            } else if (obj.type === 'path') {
-                this.drawPath(obj.x, obj.y, obj.width, obj.height);
-            } else if (obj.type === 'door') {
-                this.drawDoor(obj.x, obj.y, obj.width, obj.height);
-            } else if (obj.type === 'pendant') {
-                this.drawPendant(obj.x, obj.y, obj.width, obj.height);
-            } else {
-                // Generic colored rectangle as fallback
-                if (obj.isExit) {
-                    this.ctx.fillStyle = '#888888';
-                } else if (obj.canTake) {
-                    this.ctx.fillStyle = '#ffff00'; // Yellow for items
-                } else {
-                    this.ctx.fillStyle = '#8B4513'; // Saddle Brown for scenery
-                }
-                this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+            switch(obj.type) {
+                case 'tree':
+                    this.drawTree(obj.x, obj.y, obj.width, obj.height);
+                    break;
+                case 'rock': 
+                    this.drawRock(obj.x, obj.y, obj.width, obj.height);
+                    break;
+                case 'path':
+                    this.drawPath(obj.x, obj.y, obj.width, obj.height);
+                    break;
+                case 'door':
+                    this.drawDoor(obj.x, obj.y, obj.width, obj.height);
+                    break;
+                case 'pendant':
+                    this.drawPendant(obj.x, obj.y, obj.width, obj.height);
+                    break;
+                default:
+                    // Generic colored rectangle as fallback
+                    this.ctx.fillStyle = obj.isExit ? '#888888' : 
+                                        obj.canTake ? '#ffff00' : '#8B4513';
+                    this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
             }
         }
     }
@@ -323,6 +351,9 @@ export default class Renderer {
         const height = player.height;
         const direction = player.drawStyle.direction;
         
+        // Create a simple walking animation based on position
+        const walkCycle = Math.floor(x + y) % 4 === 0;
+        
         // Draw body
         const headSize = width;
         const headY = y;
@@ -339,19 +370,37 @@ export default class Renderer {
         this.ctx.fillStyle = player.drawStyle.shirtColor;
         this.ctx.fillRect(x, bodyY, width, bodyHeight / 2);
         
-        // Legs
+        // Legs with walking animation
         this.ctx.fillStyle = player.drawStyle.pantsColor;
-        this.ctx.fillRect(x, bodyY + bodyHeight / 2, width / 2, bodyHeight / 2);
-        this.ctx.fillRect(x + width / 2, bodyY + bodyHeight / 2, width / 2, bodyHeight / 2);
+        if (walkCycle) {
+            // Right leg forward
+            this.ctx.fillRect(x, bodyY + bodyHeight / 2, width / 2, bodyHeight / 2);
+            this.ctx.fillRect(x + width / 2, bodyY + bodyHeight / 2 + 2, width / 2, bodyHeight / 2 - 2);
+        } else {
+            // Left leg forward
+            this.ctx.fillRect(x, bodyY + bodyHeight / 2 + 2, width / 2, bodyHeight / 2 - 2);
+            this.ctx.fillRect(x + width / 2, bodyY + bodyHeight / 2, width / 2, bodyHeight / 2);
+        }
         
-        // Eyes (direction-dependent)
-        this.ctx.fillStyle = '#FFFFFF';
+        // Eyes based on direction
+        this.drawPlayerEyes(x, y, width, headSize, headY, direction);
+        
+        // Hair
+        this.ctx.fillStyle = player.drawStyle.hairColor;
+        this.ctx.beginPath();
+        this.ctx.arc(x + width / 2, headY + headSize / 4, headSize / 2, Math.PI, Math.PI * 2);
+        this.ctx.fill();
+    }
+    
+    drawPlayerEyes(x, y, width, headSize, headY, direction) {
         const eyeSize = headSize * 0.15;
         const eyeY = headY + headSize * 0.4;
         
-        // Different eye positions based on direction
+        // White of eyes
+        this.ctx.fillStyle = '#FFFFFF';
+        
         if (direction === 'left') {
-            // Both eyes on left side
+            // Eyes facing left
             this.ctx.beginPath();
             this.ctx.arc(x + width * 0.25, eyeY, eyeSize, 0, Math.PI * 2);
             this.ctx.fill();
@@ -363,7 +412,7 @@ export default class Renderer {
             this.ctx.fill();
         } 
         else if (direction === 'right') {
-            // Both eyes on right side
+            // Eyes facing right
             this.ctx.beginPath();
             this.ctx.arc(x + width * 0.75, eyeY, eyeSize, 0, Math.PI * 2);
             this.ctx.fill();
@@ -383,21 +432,16 @@ export default class Renderer {
             this.ctx.arc(x + width * 0.65, eyeY, eyeSize, 0, Math.PI * 2);
             this.ctx.fill();
             
-            // Pupils
+            // Pupils with up/down variation
             this.ctx.fillStyle = '#000000';
+            const pupilOffset = direction === 'up' ? -2 : 2;
             this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.35, eyeY + (direction === 'up' ? -2 : 2), eyeSize / 2, 0, Math.PI * 2);
+            this.ctx.arc(x + width * 0.35, eyeY + pupilOffset, eyeSize / 2, 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.beginPath();
-            this.ctx.arc(x + width * 0.65, eyeY + (direction === 'up' ? -2 : 2), eyeSize / 2, 0, Math.PI * 2);
+            this.ctx.arc(x + width * 0.65, eyeY + pupilOffset, eyeSize / 2, 0, Math.PI * 2);
             this.ctx.fill();
         }
-        
-        // Hair
-        this.ctx.fillStyle = player.drawStyle.hairColor;
-        this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, headY + headSize / 4, headSize / 2, Math.PI, Math.PI * 2);
-        this.ctx.fill();
     }
     
     // Draw loading screen during sprite loading
