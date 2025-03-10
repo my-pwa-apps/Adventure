@@ -105,12 +105,21 @@ export default class Player {
 
     isPositionWalkable(x, y, room) {
         if (!room.heightMap) return true;
-
-        const heightAtNewPos = this.getHeightAt(x, y, room);
-        if (heightAtNewPos === -999) return false;
-
-        const heightDiff = Math.abs(heightAtNewPos - this.z);
-        return heightDiff <= this.maxStepHeight;
+        
+        // Check all four corners of the player's bounding box
+        const points = [
+            { x: x, y: y },                           // Top-left
+            { x: x + this.width, y: y },             // Top-right
+            { x: x, y: y + this.height },            // Bottom-left
+            { x: x + this.width, y: y + this.height } // Bottom-right
+        ];
+        
+        for (const point of points) {
+            const heightAtPoint = this.getHeightAt(point.x, point.y, room);
+            if (heightAtPoint === -999) return false;
+        }
+        
+        return true;
     }
 
     updateFacingDirection(moveX, moveY) {
@@ -136,7 +145,6 @@ export default class Player {
         const centerY = y + this.height / 2;
         let currentHeight = room.heightMap.base;
 
-        // Check each height variation
         for (const variation of room.heightMap.variations) {
             if (centerX >= variation.x && 
                 centerX < variation.x + variation.width &&
@@ -165,32 +173,33 @@ export default class Player {
     }
     
     placeInNewRoom(room) {
-        const canvas = document.getElementById('gameCanvas');
-        
-        // Handle cottage interior specially
         if (room.type === 'cottage_interior') {
-            // Always place player near the door when entering cottage
+            // Place player just inside the door
             this.x = 160;
-            this.y = 160;
+            this.y = 140;
             return;
         }
         
-        // For other rooms, find appropriate exit positions
+        if (room.type === 'cottage') {
+            // Coming from cottage interior
+            this.x = 160;
+            this.y = 120;
+            return;
+        }
+        
+        // For other transitions, use the existing logic
+        const canvas = document.getElementById('gameCanvas');
         for (const obj of room.objects) {
             if (obj.isExit) {
                 if (obj.y < canvas.height / 2) {
-                    // Exit is at the top, place player at the bottom
                     this.y = canvas.height - this.height - 40;
                 } else if (obj.y > canvas.height / 2) {
-                    // Exit is at the bottom, place player at the top
                     this.y = 40;
                 }
                 
                 if (obj.x < canvas.width / 2) {
-                    // Exit is at the left, place player at the right
                     this.x = canvas.width - this.width - 40;
                 } else if (obj.x > canvas.width / 2) {
-                    // Exit is at the right, place player at the left
                     this.x = 40;
                 }
             }

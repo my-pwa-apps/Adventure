@@ -28,13 +28,8 @@ export default class GameEngine {
     }
     
     start() {
-        // Display initial room description
         this.displayMessage(this.rooms[this.currentRoom].description);
-        
-        // Start input handling
         this.inputHandler.initialize();
-        
-        // Start game loop with timestamp
         requestAnimationFrame(this.gameLoop.bind(this));
     }
     
@@ -50,7 +45,6 @@ export default class GameEngine {
         this.player.update();
         this.checkRoomTransitions();
         
-        // Safely update room name display
         if (this.roomNameDisplay && this.rooms[this.currentRoom]) {
             this.roomNameDisplay.textContent = this.rooms[this.currentRoom].name;
         }
@@ -61,7 +55,6 @@ export default class GameEngine {
     }
     
     displayMessage(message) {
-        // Clear any existing narration
         if (this.narrationTimer) {
             clearTimeout(this.narrationTimer);
         }
@@ -90,22 +83,16 @@ export default class GameEngine {
             return;
         }
         
-        // Reset player height when changing rooms
         this.player.z = 0;
         this.player.lastGroundHeight = 0;
         this.player.velocity.z = 0;
         
-        // Change room
         this.currentRoom = roomId;
         const room = this.rooms[roomId];
         
-        // Place player safely
         this.player.placeInNewRoom(room);
-        
-        // Update UI
         this.displayMessage(room.description);
         
-        // Award points for first visit
         if (!this.gameFlags[`visited_${roomId}`]) {
             this.gameFlags[`visited_${roomId}`] = true;
             this.addPoints(5, "for discovering a new area");

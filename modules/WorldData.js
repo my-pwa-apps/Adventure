@@ -155,21 +155,17 @@ export const rooms = {
         heightMap: {
             base: 0,
             variations: [
-                // Floor - walkable area
-                { x: 20, y: 20, width: 280, height: 160, elevation: 0 }, // Main floor area
+                // Make the entire floor walkable by default
+                { x: 0, y: 0, width: 320, height: 200, elevation: 0 },
                 
-                // Walls and boundaries - unwalkable
-                { x: 0, y: 0, width: 320, height: 20, elevation: -999 },  // Top wall
-                { x: 0, y: 180, width: 320, height: 20, elevation: -999 }, // Bottom wall
-                { x: 0, y: 0, width: 20, height: 200, elevation: -999 },  // Left wall
+                // Walls - unwalkable
+                { x: 0, y: 0, width: 20, height: 200, elevation: -999 },   // Left wall
                 { x: 300, y: 0, width: 20, height: 200, elevation: -999 }, // Right wall
+                { x: 0, y: 0, width: 320, height: 40, elevation: -999 },   // Top wall
                 
                 // Furniture - unwalkable
-                { x: 120, y: 120, width: 80, height: 40, elevation: -999 }, // Table
-                { x: 90, y: 130, width: 20, height: 20, elevation: -999 },  // Chair
-                
-                // Door area - walkable
-                { x: 160, y: 160, width: 40, height: 40, elevation: 0 }    // Door area
+                { x: 120, y: 100, width: 80, height: 40, elevation: -999 }, // Table
+                { x: 90, y: 110, width: 20, height: 20, elevation: -999 },  // Chair
             ]
         }
     }
