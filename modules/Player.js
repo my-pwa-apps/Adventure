@@ -106,12 +106,13 @@ export default class Player {
     isPositionWalkable(x, y, room) {
         if (!room.heightMap) return true;
         
-        // Check all four corners of the player's bounding box
+        // Check corners with buffer
+        const buffer = 2;
         const points = [
-            { x: x, y: y },                           // Top-left
-            { x: x + this.width, y: y },             // Top-right
-            { x: x, y: y + this.height },            // Bottom-left
-            { x: x + this.width, y: y + this.height } // Bottom-right
+            { x: x + buffer, y: y + buffer },                           // Top-left
+            { x: x + this.width - buffer, y: y + buffer },             // Top-right
+            { x: x + buffer, y: y + this.height - buffer },            // Bottom-left
+            { x: x + this.width - buffer, y: y + this.height - buffer} // Bottom-right
         ];
         
         for (const point of points) {
@@ -173,38 +174,23 @@ export default class Player {
     }
     
     placeInNewRoom(room) {
-        if (room.type === 'cottage_interior') {
-            // Place player just inside the door
-            this.x = 160;
-            this.y = 170;  // Just above the door area
+        // Standard entry/exit positions for each room type
+        const positions = {
+            forest: { x: 160, y: 150 },
+            cottage: { x: 160, y: 160 },
+            cottage_interior: { x: 160, y: 170 }
+        };
+        
+        // Set position based on room type
+        if (positions[room.type]) {
+            this.x = positions[room.type].x;
+            this.y = positions[room.type].y;
             return;
         }
         
-        if (room.type === 'cottage' && this.gameEngine.getCurrentRoom().type === 'cottage_interior') {
-            // Coming from cottage interior
-            this.x = 160;
-            this.y = 140;  // Just in front of cottage door
-            return;
-        }
-        
-        // For other transitions
+        // Fallback positioning logic
         const canvas = document.getElementById('gameCanvas');
-        for (const obj of room.objects) {
-            if (obj.isExit) {
-                // Calculate position based on exit location
-                if (obj.y < canvas.height / 2) {
-                    this.y = canvas.height - this.height - 40;
-                } else if (obj.y > canvas.height / 2) {
-                    this.y = 40;
-                }
-                
-                // Keep player centered on the path
-                if (obj.x < canvas.width / 2) {
-                    this.x = canvas.width - this.width - 40;
-                } else if (obj.x > canvas.width / 2) {
-                    this.x = 40;
-                }
-            }
-        }
+        this.x = canvas.width / 2;
+        this.y = canvas.height - this.height - 40;
     }
 }

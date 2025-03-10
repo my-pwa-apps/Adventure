@@ -106,11 +106,17 @@ export const rooms = {
         heightMap: {
             base: 0,
             variations: [
-                { x: 0, y: 0, width: 320, height: 200, elevation: 0 }, // Base ground
-                { x: 0, y: 0, width: 320, height: 80, elevation: -999 }, // Sky area
-                { x: 160, y: 80, width: 40, height: 80, elevation: -999 }, // Cottage (unwalkable)
-                { x: 160, y: 160, width: 50, height: 40, elevation: 1 }, // Cottage steps
-                { x: 160, y: 0, width: 50, height: 200, elevation: 0 }, // Path
+                // Base terrain
+                { x: 0, y: 80, width: 320, height: 120, elevation: 0 },  // Ground
+                { x: 0, y: 0, width: 320, height: 80, elevation: -999 }, // Sky
+                
+                // Path and steps
+                { x: 140, y: 80, width: 80, height: 120, elevation: 0 }, // Path
+                { x: 140, y: 140, width: 80, height: 20, elevation: 1 }, // Steps
+                
+                // Cottage collision
+                { x: 100, y: 60, width: 160, height: 80, elevation: -999 }, // Cottage walls
+                { x: 160, y: 140, width: 40, height: 40, elevation: 0 },    // Doorway
             ]
         }
     },
@@ -155,21 +161,21 @@ export const rooms = {
         heightMap: {
             base: 0,
             variations: [
-                // Floor base - walkable everywhere by default
-                { x: 20, y: 40, width: 280, height: 140, elevation: 0 }, // Main floor area
+                // Main floor
+                { x: 20, y: 40, width: 280, height: 140, elevation: 0 },
                 
-                // Walls - unwalkable
-                { x: 0, y: 0, width: 320, height: 40, elevation: -999 },    // Top wall
-                { x: 0, y: 180, width: 320, height: 20, elevation: -999 },  // Bottom wall
-                { x: 0, y: 0, width: 20, height: 200, elevation: -999 },    // Left wall
-                { x: 300, y: 0, width: 20, height: 200, elevation: -999 },  // Right wall
+                // Walls 
+                { x: 0, y: 0, width: 320, height: 40, elevation: -999 },   // Top
+                { x: 0, y: 180, width: 320, height: 20, elevation: -999 }, // Bottom
+                { x: 0, y: 0, width: 20, height: 200, elevation: -999 },   // Left
+                { x: 300, y: 0, width: 20, height: 200, elevation: -999 }, // Right
                 
-                // Door area - ensure it's walkable
-                { x: 140, y: 160, width: 40, height: 40, elevation: 0 },    // Door area
+                // Door area
+                { x: 140, y: 160, width: 40, height: 40, elevation: 0 },
                 
-                // Furniture - unwalkable but allows player behind
+                // Furniture collision
                 { x: 120, y: 100, width: 80, height: 40, elevation: -999 }, // Table
-                { x: 90, y: 110, width: 20, height: 20, elevation: -999 },  // Chair
+                { x: 90, y: 110, width: 20, height: 20, elevation: -999 }   // Chair
             ]
         }
     }
