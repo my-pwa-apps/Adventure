@@ -1,13 +1,13 @@
 export default class GameEngine {
-    constructor({ player, renderer, commandParser, inputHandler, rooms, textOutput, roomNameDisplay, scoreDisplay }) {
+    constructor({ player, renderer, commandParser, inputHandler, rooms, textOutput, roomName, scoreDisplay, isMobile }) {
         this.player = player;
         this.renderer = renderer;
         this.commandParser = commandParser;
         this.inputHandler = inputHandler;
         this.rooms = rooms;
         this.textOutput = textOutput;
-        this.roomNameDisplay = roomNameDisplay || { textContent: '' };
-        this.scoreDisplay = scoreDisplay || { textContent: '' };
+        this.roomNameDisplay = roomName;
+        this.scoreDisplay = scoreDisplay || { textContent: '0' };
         
         this.currentRoom = 'forest';
         this.gameFlags = {};
@@ -45,10 +45,9 @@ export default class GameEngine {
     }
     
     update(timestamp) {
-        // Update player
-        this.player.update();
+        if (this.gameOver) return;
         
-        // Check for room transitions
+        this.player.update();
         this.checkRoomTransitions();
         
         // Safely update room name display
@@ -86,6 +85,11 @@ export default class GameEngine {
     }
     
     changeRoom(roomId) {
+        if (!this.rooms[roomId]) {
+            console.error(`Attempted to change to invalid room: ${roomId}`);
+            return;
+        }
+        
         this.currentRoom = roomId;
         const room = this.rooms[roomId];
         
@@ -94,6 +98,12 @@ export default class GameEngine {
         
         // Display new room description
         this.displayMessage(room.description);
+        
+        // Award points for first visit if not visited before
+        if (!this.gameFlags[`visited_${roomId}`]) {
+            this.gameFlags[`visited_${roomId}`] = true;
+            this.addPoints(5, "for discovering a new area");
+        }
     }
     
     checkRoomTransitions() {

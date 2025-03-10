@@ -7,32 +7,43 @@ import { rooms } from './modules/WorldData.js';
 
 // Initialize game when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize components
-    const canvas = document.getElementById('gameCanvas');
-    const textOutput = document.getElementById('textOutput');
-    const commandInput = document.getElementById('commandInput');
-    const roomNameDisplay = document.getElementById('roomName');
-    const scoreDisplay = document.getElementById('scoreDisplay');
-    const submitButton = document.getElementById('submitCommand');
+    // Get DOM elements
+    const elements = {
+        canvas: document.getElementById('gameCanvas'),
+        textOutput: document.getElementById('textOutput'),
+        commandInput: document.getElementById('commandInput'),
+        roomName: document.getElementById('roomName'),
+        scoreDisplay: document.getElementById('scoreDisplay'),
+        submitCommand: document.getElementById('submitCommand')
+    };
+    
+    // Check if any required elements are missing
+    const missingElements = Object.entries(elements)
+        .filter(([key, element]) => !element)
+        .map(([key]) => key);
+    
+    if (missingElements.length > 0) {
+        console.error('Missing DOM elements:', missingElements);
+        return;
+    }
     
     // Check if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
+    // Initialize game components
     const player = new Player(160, 150);
-    const renderer = new Renderer(canvas, rooms);
-    const commandParser = new CommandParser(textOutput);
-    const inputHandler = new InputHandler(commandInput, commandParser, submitButton, isMobile);
+    const renderer = new Renderer(elements.canvas, rooms);
+    const commandParser = new CommandParser(elements.textOutput);
+    const inputHandler = new InputHandler(elements.commandInput, commandParser, elements.submitCommand, isMobile);
     
-    // Initialize game engine with all components
+    // Initialize game engine
     const gameEngine = new GameEngine({
         player,
         renderer,
         commandParser,
         inputHandler,
         rooms,
-        textOutput,
-        roomNameDisplay,  // Make sure this element exists
-        scoreDisplay,
+        ...elements,
         isMobile
     });
     
