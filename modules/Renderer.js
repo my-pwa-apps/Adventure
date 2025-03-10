@@ -598,27 +598,38 @@ export default class Renderer {
     }
     
     drawPlayer(player) {
-        // Scale player position from the actual canvas to our virtual resolution
         const scaledX = Math.round((player.x / this.canvas.width) * this.virtualWidth);
         const scaledY = Math.round((player.y / this.canvas.height) * this.virtualHeight);
         const scaledWidth = Math.round((player.width / this.canvas.width) * this.virtualWidth);
         const scaledHeight = Math.round((player.height / this.canvas.height) * this.virtualHeight);
+
+        // Adjust Y position based on elevation/z
+        const elevatedY = scaledY - player.z * 2; // Scale elevation effect
         
-        const direction = player.drawStyle.direction;
-        
-        // KQ3/4 character - much simpler than KQ5/6, more blocky and pixelated
-        switch(direction) {
+        // Add shadow
+        this.virtualCtx.fillStyle = 'rgba(0,0,0,0.3)';
+        this.virtualCtx.beginPath();
+        this.virtualCtx.ellipse(
+            scaledX + scaledWidth/2, 
+            scaledY + scaledHeight - 2,
+            scaledWidth/3, scaledHeight/6, 
+            0, 0, Math.PI * 2
+        );
+        this.virtualCtx.fill();
+
+        // Draw player at elevated position
+        switch(player.drawStyle.direction) {
             case 'left':
-                this.drawKQ3PlayerSide(scaledX, scaledY, scaledWidth, scaledHeight, 'left');
+                this.drawKQ3PlayerSide(scaledX, elevatedY, scaledWidth, scaledHeight, 'left');
                 break;
             case 'right':
-                this.drawKQ3PlayerSide(scaledX, scaledY, scaledWidth, scaledHeight, 'right');
+                this.drawKQ3PlayerSide(scaledX, elevatedY, scaledWidth, scaledHeight, 'right');
                 break;
             case 'up':
-                this.drawKQ3PlayerBack(scaledX, scaledY, scaledWidth, scaledHeight);
+                this.drawKQ3PlayerBack(scaledX, elevatedY, scaledWidth, scaledHeight);
                 break;
-            default: // down or default
-                this.drawKQ3PlayerFront(scaledX, scaledY, scaledWidth, scaledHeight);
+            default:
+                this.drawKQ3PlayerFront(scaledX, elevatedY, scaledWidth, scaledHeight);
         }
     }
     

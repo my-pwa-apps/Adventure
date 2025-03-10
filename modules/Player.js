@@ -29,6 +29,13 @@ export default class Player {
         
         // Set up key event listeners
         this.setupKeyboardListeners();
+
+        this.z = 0;  // Current height/elevation
+        this.velocity = { x: 0, y: 0, z: 0 };
+        this.gravity = 0.5;
+        this.jumpForce = 8;
+        this.isJumping = false;
+        this.lastGroundHeight = 0;
     }
     
     setGameEngine(gameEngine) {
@@ -50,28 +57,83 @@ export default class Player {
     }
     
     update() {
-        // Handle movement based on key presses
-        if (this.keys.ArrowUp) {
-            this.y -= this.speed;
-            this.drawStyle.direction = 'up';
-        }
-        if (this.keys.ArrowDown) {
-            this.y += this.speed;
-            this.drawStyle.direction = 'down';
-        }
-        if (this.keys.ArrowLeft) {
-            this.x -= this.speed;
-            this.drawStyle.direction = 'left';
-        }
-        if (this.keys.ArrowRight) {
-            this.x += this.speed;
-            this.drawStyle.direction = 'right';
-        }
+        const room = this.gameEngine.getCurrentRoom();
+        const prevX = this.x;
+        const prevY = this.y;
         
+        // Store previous height
+        const prevZ = this.z;
+
+        // Apply movement based on key presses
+        let moveX = 0;
+        let moveY = 0;
+
+        if (this.keys.ArrowLeft) moveX -= this.speed;
+        if (this.keys.ArrowRight) moveX += this.speed;
+        if (this.keys.ArrowUp) moveY -= this.speed;
+        if (this.keys.ArrowDown) moveY += this.speed;
+
+        // Apply movement if it would be valid
+        const newX = this.x + moveX;
+        const newY = this.y + moveY;
+        
+        // Check if new position is walkable
+        const heightAtNewPos = this.getHeightAt(newX, newY, room);
+        
+        if (heightAtNewPos !== -999) {  // -999 indicates unwalkable
+            // Allow movement if height difference is walkable
+            const heightDiff = Math.abs(heightAtNewPos - this.z);
+            if (heightDiff <= 2) { // Max step height
+                this.x = newX;
+                this.y = newY;
+                this.lastGroundHeight = heightAtNewPos;
+            }
+        }
+
+        // Apply gravity and vertical movement
+        this.velocity.z -= this.gravity;
+        this.z += this.velocity.z;
+
+        // Ground collision
+        if (this.z <= this.lastGroundHeight) {
+            this.z = this.lastGroundHeight;
+            this.velocity.z = 0;
+            this.isJumping = false;
+        }
+
+        // Update sprite direction
+        if (moveX !== 0 || moveY !== 0) {
+            if (Math.abs(moveX) > Math.abs(moveY)) {
+                this.drawStyle.direction = moveX > 0 ? 'right' : 'left';
+            } else {
+                this.drawStyle.direction = moveY > 0 ? 'down' : 'up';
+            }
+        }
+
         // Keep player within canvas bounds
         const canvas = document.getElementById('gameCanvas');
         this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
         this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
+    }
+
+    getHeightAt(x, y, room) {
+        if (!room.heightMap) return 0;
+
+        const centerX = x + this.width / 2;
+        const centerY = y + this.height / 2;
+        let currentHeight = room.heightMap.base;
+
+        // Check each height variation
+        for (const variation of room.heightMap.variations) {
+            if (centerX >= variation.x && 
+                centerX < variation.x + variation.width &&
+                centerY >= variation.y && 
+                centerY < variation.y + variation.height) {
+                currentHeight = variation.elevation;
+            }
+        }
+
+        return currentHeight;
     }
     
     isColliding(obj) {

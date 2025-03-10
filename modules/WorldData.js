@@ -49,7 +49,18 @@ export const rooms = {
                 type: 'oldMan'
             }
         ],
-        description: 'You are at the entrance to a dark forest. There is a path leading south.'
+        description: 'You are at the entrance to a dark forest. There is a path leading south.',
+        heightMap: {
+            base: 0,
+            variations: [
+                { x: 0, y: 0, width: 320, height: 200, elevation: 0 }, // Base ground
+                { x: 0, y: 0, width: 320, height: 80, elevation: -999 }, // Sky area (unwalkable)
+                { x: 160, y: 80, width: 50, height: 120, elevation: 0 }, // Path
+                // Add rocks and obstacles
+                { x: 50, y: 50, width: 30, height: 30, elevation: -999 }, // Tree area (unwalkable)
+                { x: 200, y: 170, width: 20, height: 15, elevation: 2 }, // Rock elevation
+            ]
+        }
     },
     'cottage': {
         name: 'Cottage',
@@ -91,7 +102,17 @@ export const rooms = {
             }
         ],
         npcs: [],
-        description: 'A small cottage with a wooden door. The path leads back to the forest.'
+        description: 'A small cottage with a wooden door. The path leads back to the forest.',
+        heightMap: {
+            base: 0,
+            variations: [
+                { x: 0, y: 0, width: 320, height: 200, elevation: 0 }, // Base ground
+                { x: 0, y: 0, width: 320, height: 80, elevation: -999 }, // Sky area
+                { x: 160, y: 80, width: 40, height: 80, elevation: -999 }, // Cottage (unwalkable)
+                { x: 160, y: 160, width: 50, height: 40, elevation: 1 }, // Cottage steps
+                { x: 160, y: 0, width: 50, height: 200, elevation: 0 }, // Path
+            ]
+        }
     },
     'cottage_interior': {
         name: 'Inside Cottage',
