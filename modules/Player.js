@@ -176,27 +176,29 @@ export default class Player {
         if (room.type === 'cottage_interior') {
             // Place player just inside the door
             this.x = 160;
-            this.y = 140;
+            this.y = 170;  // Just above the door area
             return;
         }
         
-        if (room.type === 'cottage') {
+        if (room.type === 'cottage' && this.gameEngine.getCurrentRoom().type === 'cottage_interior') {
             // Coming from cottage interior
             this.x = 160;
-            this.y = 120;
+            this.y = 140;  // Just in front of cottage door
             return;
         }
         
-        // For other transitions, use the existing logic
+        // For other transitions
         const canvas = document.getElementById('gameCanvas');
         for (const obj of room.objects) {
             if (obj.isExit) {
+                // Calculate position based on exit location
                 if (obj.y < canvas.height / 2) {
                     this.y = canvas.height - this.height - 40;
                 } else if (obj.y > canvas.height / 2) {
                     this.y = 40;
                 }
                 
+                // Keep player centered on the path
                 if (obj.x < canvas.width / 2) {
                     this.x = canvas.width - this.width - 40;
                 } else if (obj.x > canvas.width / 2) {

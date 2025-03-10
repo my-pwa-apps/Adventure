@@ -121,8 +121,8 @@ export const rooms = {
         objects: [
             { 
                 name: 'door', 
-                x: 160, 
-                y: 160, // Moved door down to floor level
+                x: 140,     // Centered better
+                y: 160,     // At floor level
                 width: 40, 
                 height: 40,
                 description: 'The cottage door leads back outside.', 
@@ -155,15 +155,19 @@ export const rooms = {
         heightMap: {
             base: 0,
             variations: [
-                // Make the entire floor walkable by default
-                { x: 0, y: 0, width: 320, height: 200, elevation: 0 },
+                // Floor base - walkable everywhere by default
+                { x: 20, y: 40, width: 280, height: 140, elevation: 0 }, // Main floor area
                 
                 // Walls - unwalkable
-                { x: 0, y: 0, width: 20, height: 200, elevation: -999 },   // Left wall
-                { x: 300, y: 0, width: 20, height: 200, elevation: -999 }, // Right wall
-                { x: 0, y: 0, width: 320, height: 40, elevation: -999 },   // Top wall
+                { x: 0, y: 0, width: 320, height: 40, elevation: -999 },    // Top wall
+                { x: 0, y: 180, width: 320, height: 20, elevation: -999 },  // Bottom wall
+                { x: 0, y: 0, width: 20, height: 200, elevation: -999 },    // Left wall
+                { x: 300, y: 0, width: 20, height: 200, elevation: -999 },  // Right wall
                 
-                // Furniture - unwalkable
+                // Door area - ensure it's walkable
+                { x: 140, y: 160, width: 40, height: 40, elevation: 0 },    // Door area
+                
+                // Furniture - unwalkable but allows player behind
                 { x: 120, y: 100, width: 80, height: 40, elevation: -999 }, // Table
                 { x: 90, y: 110, width: 20, height: 20, elevation: -999 },  // Chair
             ]
