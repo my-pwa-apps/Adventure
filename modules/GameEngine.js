@@ -90,16 +90,22 @@ export default class GameEngine {
             return;
         }
         
+        // Reset player height when changing rooms
+        this.player.z = 0;
+        this.player.lastGroundHeight = 0;
+        this.player.velocity.z = 0;
+        
+        // Change room
         this.currentRoom = roomId;
         const room = this.rooms[roomId];
         
-        // Place player at appropriate position based on which exit was used
+        // Place player safely
         this.player.placeInNewRoom(room);
         
-        // Display new room description
+        // Update UI
         this.displayMessage(room.description);
         
-        // Award points for first visit if not visited before
+        // Award points for first visit
         if (!this.gameFlags[`visited_${roomId}`]) {
             this.gameFlags[`visited_${roomId}`] = true;
             this.addPoints(5, "for discovering a new area");

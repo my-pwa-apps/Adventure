@@ -151,6 +151,17 @@ export const rooms = {
             }
         ],
         npcs: [],
-        description: 'You are inside the small cottage. It\'s a cozy space with simple furniture.'
+        description: 'You are inside the small cottage. It\'s a cozy space with simple furniture.',
+        heightMap: {
+            base: 0,
+            variations: [
+                { x: 0, y: 0, width: 320, height: 200, elevation: 0 }, // Floor
+                { x: 120, y: 120, width: 80, height: 40, elevation: -999 }, // Table (unwalkable)
+                { x: 90, y: 130, width: 20, height: 20, elevation: -999 }, // Chair (unwalkable)
+                { x: 0, y: 0, width: 20, height: 200, elevation: -999 }, // Left wall
+                { x: 300, y: 0, width: 20, height: 200, elevation: -999 }, // Right wall
+                { x: 0, y: 0, width: 320, height: 20, elevation: -999 }, // Top wall
+            ]
+        }
     }
 };

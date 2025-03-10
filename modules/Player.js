@@ -36,6 +36,10 @@ export default class Player {
         this.jumpForce = 8;
         this.isJumping = false;
         this.lastGroundHeight = 0;
+
+        // Add collision buffer
+        this.collisionBuffer = 5;
+        this.maxStepHeight = 2;
     }
     
     setGameEngine(gameEngine) {
@@ -58,13 +62,8 @@ export default class Player {
     
     update() {
         const room = this.gameEngine.getCurrentRoom();
-        const prevX = this.x;
-        const prevY = this.y;
         
-        // Store previous height
-        const prevZ = this.z;
-
-        // Apply movement based on key presses
+        // Calculate new position
         let moveX = 0;
         let moveY = 0;
 
@@ -73,24 +72,18 @@ export default class Player {
         if (this.keys.ArrowUp) moveY -= this.speed;
         if (this.keys.ArrowDown) moveY += this.speed;
 
-        // Apply movement if it would be valid
+        // Test movement with collision checks
         const newX = this.x + moveX;
         const newY = this.y + moveY;
         
         // Check if new position is walkable
-        const heightAtNewPos = this.getHeightAt(newX, newY, room);
-        
-        if (heightAtNewPos !== -999) {  // -999 indicates unwalkable
-            // Allow movement if height difference is walkable
-            const heightDiff = Math.abs(heightAtNewPos - this.z);
-            if (heightDiff <= 2) { // Max step height
-                this.x = newX;
-                this.y = newY;
-                this.lastGroundHeight = heightAtNewPos;
-            }
+        if (this.isPositionWalkable(newX, newY, room)) {
+            this.x = newX;
+            this.y = newY;
+            this.lastGroundHeight = this.getHeightAt(newX, newY, room);
         }
 
-        // Apply gravity and vertical movement
+        // Apply gravity
         this.velocity.z -= this.gravity;
         this.z += this.velocity.z;
 
@@ -101,19 +94,39 @@ export default class Player {
             this.isJumping = false;
         }
 
-        // Update sprite direction
+        // Update direction
         if (moveX !== 0 || moveY !== 0) {
-            if (Math.abs(moveX) > Math.abs(moveY)) {
-                this.drawStyle.direction = moveX > 0 ? 'right' : 'left';
-            } else {
-                this.drawStyle.direction = moveY > 0 ? 'down' : 'up';
-            }
+            this.updateFacingDirection(moveX, moveY);
         }
 
-        // Keep player within canvas bounds
+        // Keep within bounds
+        this.clampToBounds();
+    }
+
+    isPositionWalkable(x, y, room) {
+        if (!room.heightMap) return true;
+
+        const heightAtNewPos = this.getHeightAt(x, y, room);
+        if (heightAtNewPos === -999) return false;
+
+        const heightDiff = Math.abs(heightAtNewPos - this.z);
+        return heightDiff <= this.maxStepHeight;
+    }
+
+    updateFacingDirection(moveX, moveY) {
+        if (Math.abs(moveX) > Math.abs(moveY)) {
+            this.drawStyle.direction = moveX > 0 ? 'right' : 'left';
+        } else {
+            this.drawStyle.direction = moveY > 0 ? 'down' : 'up';
+        }
+    }
+
+    clampToBounds() {
         const canvas = document.getElementById('gameCanvas');
-        this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
-        this.y = Math.max(0, Math.min(canvas.height - this.height, this.y));
+        const buffer = this.collisionBuffer;
+        
+        this.x = Math.max(buffer, Math.min(canvas.width - this.width - buffer, this.x));
+        this.y = Math.max(buffer, Math.min(canvas.height - this.height - buffer, this.y));
     }
 
     getHeightAt(x, y, room) {
