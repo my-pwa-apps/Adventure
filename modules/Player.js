@@ -165,25 +165,33 @@ export default class Player {
     }
     
     placeInNewRoom(room) {
-        // Find the exit that leads back to where we came from
         const canvas = document.getElementById('gameCanvas');
         
+        // Handle cottage interior specially
+        if (room.type === 'cottage_interior') {
+            // Always place player near the door when entering cottage
+            this.x = 160;
+            this.y = 160;
+            return;
+        }
+        
+        // For other rooms, find appropriate exit positions
         for (const obj of room.objects) {
             if (obj.isExit) {
                 if (obj.y < canvas.height / 2) {
                     // Exit is at the top, place player at the bottom
-                    this.y = canvas.height - this.height - 20;
+                    this.y = canvas.height - this.height - 40;
                 } else if (obj.y > canvas.height / 2) {
                     // Exit is at the bottom, place player at the top
-                    this.y = 20;
+                    this.y = 40;
                 }
                 
                 if (obj.x < canvas.width / 2) {
                     // Exit is at the left, place player at the right
-                    this.x = canvas.width - this.width - 20;
+                    this.x = canvas.width - this.width - 40;
                 } else if (obj.x > canvas.width / 2) {
                     // Exit is at the right, place player at the left
-                    this.x = 20;
+                    this.x = 40;
                 }
             }
         }
